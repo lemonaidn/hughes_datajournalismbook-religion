@@ -36,7 +36,7 @@ You can keep doing that for as many libraries as you need.
 
 ## Importing data
 
-The first thing we need to do is get some data to work with. We do that by reading it in. In our case, we're going to read a datatable from a CSV file. A CSV is a stripped down version of a spreadsheet you might open in a program like Excel, in which each column is separated by a comma. There are other types of files that R can read, but CSVs are common and _mostly_ easy to work with.
+The first thing we need to do is get some data to work with. We do that by reading it in. In our case, we're going to read a datatable from a CSV file. A CSV is a stripped down version of a spreadsheet you might open in a program like Excel, in which each column is separated by a comma. There are other types of files that R can read, but CSVs are common and *mostly* easy to work with.
 
 The CSV we're going to work with is a list of tax-exempt churches in Maryland, from the Internal Revenue Service. It has information like the name of the organization, its address, city, state, zip code and different codes describing details about its status and organization. More information about those codes is available in the IRS documentation for exempt organizations, which you can find [here](https://www.irs.gov/pub/irs-soi/eo-info.pdf).
 
@@ -136,7 +136,7 @@ Inside the parentheses in summarize, we set up the summaries we want. In this ca
 
 When we run that, we get a list of cities with a count next to them. But it's not in any order.
 
-So we'll add another "and then do this" symbol -- \|\> -- and use a new function called `arrange()`. Arrange does what you think it does -- it arranges data in order. By default, it's in ascending order -- smallest to largest. But if we want to know the term with the most classes, we need to sort it in descending order. That looks like this:
+So we'll add another "and then do this" symbol -- \|\> -- and use a new function called `arrange()`. Arrange does what you think it does -- it arranges data in order. By default, it's in ascending order -- smallest to largest. But if we want to know the city with the most churches, we need to sort it in descending order. That looks like this:
 
 ```{r}
 md_churches |>
@@ -151,7 +151,7 @@ Baltimore, not surprisingly, has the most churches, and it's not close.
 
 We can, if we want, group by more than one thing. The churches data contains a column detailing the five-digit zip code called `zip5`.
 
-We can group by city _and_ zip code, like this:
+We can group by city *and* zip code, like this:
 
 ```{r}
 md_churches |>
@@ -184,7 +184,7 @@ megachurches |>
   arrange(desc(total_size))
 ```
 
-We can also calculate the average size of churches in each denomination using the `mean()` function, and add the `median`, too, like this:
+We can also calculate the average size of megachurches in each denomination using the `mean()` function, and add the `median`, too, like this:
 
 ```{r}
 megachurches |>
@@ -214,7 +214,7 @@ megachurches |>
   arrange(desc(total_size))
 ```
 
-It would be interesting to see what the church with the largest size is. To do that, we can just use `arrange()` on the whole dataset, like this:`
+It would be interesting to see what the church with the largest size is. To do that, we can just use `arrange()` on the whole dataset, like this:\`
 
 ```{r}
 megachurches |>
