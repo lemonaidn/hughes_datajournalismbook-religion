@@ -29,34 +29,33 @@ library(tidyverse)
 
 ## Load Data
 
-We're going to load the UMD courses data.
+We're going to load the Maryland churches data and the megachurches data.
 
-**Task** Run the codeblock below to load the data, which is contained in an RDS file.
+**Task** Run the codeblock below to load the data, which is contained in CSV files.
 
 ```{r}
-umd_courses <- read_rds("lab_01.rds")
+md_churches <- read_csv("churches_md.csv")
+megachurches <- read_csv("megachurches.csv")
 ```
 
 ## Answer questions
 
-**Q1** Which department has the highest mean (average) number of seats for its classes? You need to show the department with the highest average first. Which one is the most surprising/interesting to you? **A1**
+**Q1** Which NTEE classification code (the NTEE_CD column) has the most churches in Maryland? Show the classification codes (you can find out what they mean here: https://www.irs.gov/pub/irs-soi/eo-info.pdf) with the highest count first. Is this result useful? Why or why not? **A1**
 
 ```{r}
 ```
 
-**Q2** Find out the greatest number of times any individual class has been offered in our dataset. Your code must show the greatest number of classes first.
-**A2**
+**Q2** Find out which denomination has the greatest average (mean) size for its megachurches. Your code must show the denomination with the greatest average size first. **A2**
 
 ```{r}
 ```
 
-**Q3** Count the number of courses for each instructor and department. Which instructor has taught the most?
-**A3**
+**Q3** Count the number of megachurches for each state and city combination. Which state/city combination has the most megachurches? Which city is the most surprising, and why? **A3**
 
 ```{r}
 ```
 
-**Q4** Given the results for Q3, what would have made it easier to find the answer? You don't have to know *how* to accomplish this; I want you to describe in words what would make the answer easier to see. How confident are you that the answer you got is the right one, and why? **A4**
+**Q4** Given the results for Q3, what's a story that you could tell with this information? Think broadly, and consider what additional information you might need to make your story stronger. You also should think about what cities and states aren't in the results. **A4**
 
 **Q5** Take one of the questions you listed in the final question of the pre_lab and try to answer it here in code. If you don't know how to fully answer it, write what code you can and describe in words what else you would need to do. If you got an answer, is it interesting? **A5**
 

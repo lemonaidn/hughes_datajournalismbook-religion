@@ -233,7 +233,7 @@ megachurches |>
   arrange(desc(size))
 ```
 
-85,000 people is a big congregation. 
+85,000 people is a big congregation.
 
 ### Task 12: Questions
 

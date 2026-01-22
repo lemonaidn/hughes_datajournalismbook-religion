@@ -235,6 +235,7 @@ Often the data you have will prompt questions that it doesn't immediately answer
 First, we'll import a dataset of Catholic Church statistics from selected years that is in the data folder in this chapter's pre-lab directory. We'll use this to explore ways to create new information from existing data.
 
 **Task**
+
 ```{r}
 cara_stats <- read_csv('data/cara.csv')
 ```
@@ -294,7 +295,6 @@ cara_stats |>
   arrange(catholics_per_parish)
 ```
 
-
 ### Task 14: Adding multiple calculations
 
 We can also add multiple calculations at once. Let's calculate both the Catholics per parish and the percentage of parishes without a resident priest.
@@ -313,7 +313,6 @@ cara_stats <- cara_stats |>
 What story does this data tell about how the Catholic Church in the U.S. has changed over time?
 
 **Answer**
-
 
 ### Task 15: Standardize existing data using mutate
 
