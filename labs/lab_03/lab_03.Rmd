@@ -1,7 +1,7 @@
 ---
 title: "lab_03"
 author: "Derek Willis"
-date: "2025-01-16"
+date: "2026-01-16"
 output: html_document
 ---
 
@@ -32,41 +32,40 @@ Load the two datasets we worked with in the pre_lab that are in the data folder:
 
 ## Answer questions
 
-Q1: You want to know how much money state agencies have paid to the Prince George's County School system, but to do that you'll need to find all of the variations of how the school system might be listed in the payments data. Look at & search the records in the dataframe to start your search, starting with a broad search and then narrowing it down. Then write code to find rows where the vendor name contains some version of the county's school system.
+Q1: You want to know how much money state agencies have paid to religious organizations in a particular denomination, but to do that you'll need to find the variations of how that denomination's organizations might be listed. Pick a denomination or faith and write code to find rows where the vendor name contains the name you're searching for, starting with a simple word or phrase and then getting more complex if needed. NOTE: you need to pick one that has at least some payments!
 
 HINT: you should use filter() just once, and inside your filter you want to look for the variations one at a time. Think "this version OR that version."
 
-When you have found as many as possible, save the result to a new dataframe called `pg_schools`. How many records did you find?
+When you have found as many as possible, save the result to a new dataframe called `rel_orgs``. Write the denomination or faith, and how many records you found.
 
 A1:
 
 ```{r}
 ```
 
-Q2: Using that `pg_schools` dataframe, write code to calculate the total amount of payments to the Prince George's County School system for each fiscal year. Which fiscal year had the largest total amount? Are there any aspects of the results that stand out to you?
+Q2: Using that `rel_orgs` dataframe, write code to calculate the total amount of payments to those religious organizations for each fiscal year. Which fiscal year had the largest total amount? Are there any aspects of the results that stand out to you?
 
 A2:
 
 ```{r}
 ```
 
-Q3. You're interested in examining the vendors paid for capital projects at the University of Maryland. Search the payments data to find those payments, then write code to produce a list of each vendor and the total amount it received.
-
-Look carefully at that list - what cleaning will it require to ensure that you have only one row per vendor and zip code? Provide at least three examples of vendor names that are similar and should be combined into one. Describe in words how you might clean that data so that any nearly identical vendors would look identical - what would you change and how?
+Q3. You're interested in examining state payments (not grants or loans) to Catholic Charities organizations. Use `filter()` and `str_detect()` to find those payments and save them to a new dataframe. Then look carefully at that list - what cleaning will it require to ensure that you can standardize the vendor names? Write a plan - not code for this step - describing how you would clean up the records so that the end result is that you'd have each unique vendor listed only once. You _can_ write code for this, but that's optional. What's required is a step-by-step process.
 
 A3.
 
 ```{r}
 ```
 
-Q4: You want to understand how much state grant money went to stem cell research projects each fiscal year. Search the data to find grants that fit that description. Once you find which column(s) contain the information you want, your code should find just the grants for stem cell research in a single filter. Then calculate the total amount of money for each fiscal year. Write a sentence summarizing how stem cell research funding has changed over time.
+Q4: You want to the leading recipients of state grant money given for the purpose of preventing hate crimes. Filter the data to find grants that fit that description; you'll want to make sure that you locate all of them. Then calculate the total amount of money for each grantee. Write a sentence or two describing the top 20 grantees.
 
 A4:
 
 ```{r}
+
 ```
 
-Q5: Using the Maryland grants and loan data, find records where the zip code is the one where the University of Maryland-College Park is located in and produce a list of grantees from that zip code, along with the total amount they received. Write a paragraph explaining how many grantees are there, what you would need to do to clean the results so that you had one record per grantee and which grantees are most interesting to you?
+Q5: Using the Maryland grants and loan data, write code to find grant recipients of the African American Heritage Preservation Program (AAHPP) and produce a list of grantees along with the total amount they received. Describe which of the top 20 recipients are churches or church-related (you may need to do some research to figure that out). Which of those grantees are most interesting to you?
 
 A5:
 
