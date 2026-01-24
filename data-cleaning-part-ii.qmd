@@ -19,7 +19,7 @@ library(janitor)
 Let's continue with our Maryland grants and loans data that we worked with in the previous chapter.
 
 ```{r}
-md_grants_loans <- read_csv("data/State_of_Maryland_Grant_and_Loan_Data__FY2009_to_FY2022_20250115.csv")
+md_grants_loans <- read_csv("data/State_of_Maryland_Grant_and_Loan_Data__FY2009_to_FY2024_20260122.csv")
 ```
 
 There are a number of issues with this data set that might get in the way of asking questions and receiving accurate answers. They are:
@@ -29,7 +29,7 @@ There are a number of issues with this data set that might get in the way of ask
 -   The zip field mixes five digit ZIP codes and nine digit ZIP codes, and some of the records include spaces. If we wanted to group and count the number of loans in a given ZIP code, this inconsistency would not let us do that correctly.
 -   The category column is inconsistent and has some missing values.
 
-Let's get cleaning. Our goal will be to build up one block of code that does all the necessary cleaning in order to answer this question: which zip code has gotten the most amount of money from the Maryland Tourism Board?
+Let's get cleaning. Our goal will be to build up one block of code that does all the necessary cleaning in order to answer this question: which organization with "CHURCH" in its name has gotten the most amount of grant/loan money from the state, and what's the zip code where it is located?
 
 ## Cleaning headers
 
@@ -177,14 +177,4 @@ cleaned_md_grants_loans <- md_grants_loans |>
 cleaned_md_grants_loans
 ```
 
-We've gotten the source and zip code data as clean as we can, and now we can answer our question: which zip code has gotten the most amount of money from the Maryland Tourism Board? A good rule of thumb is that you should only spend time cleaning fields that are critical to the specific analysis you want to do.
-
-```{r}
-cleaned_md_grants_loans |> 
-  filter(source == 'COMMERCE/MARYLAND TOURISM BOARD') |> 
-  group_by(zip5) |> 
-  summarize(total_amount = sum(amount)) |> 
-  arrange(desc(total_amount))
-```
-
-Why, it's [downtown Baltimore, including the Inner Harbor area](https://censusreporter.org/profiles/86000US21202-21202/).
+We've gotten the source and zip code data as clean as we can, and now we can answer our question: which grantee with the word "CHURCH" in its name has gotten the most amount of grant/loan money from the state, and what is the zip code for it? A good rule of thumb is that you should only spend time cleaning fields that are critical to the specific analysis you want to do.
