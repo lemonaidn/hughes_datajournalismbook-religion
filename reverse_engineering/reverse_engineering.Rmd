@@ -1,0 +1,180 @@
+---
+title: "Reverse Engineering: Religion and Voting"
+author: "Student Name"
+date: "2026-02-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+## About this assignment
+
+In this assignment, you will reverse engineer findings from a data analysis published by Ryan Burge, a professor at Washington University's Danforth Center on Religion and Politics. The article, "Why Religion, Not Income, Predicts the American Vote," uses data from the Cooperative Election Study (CES) to argue that religious identity is a far stronger predictor of how Americans vote than household income.
+
+Your job is to read the article and the original R code, then write your own code to replicate specific findings. You don't need to reproduce the exact charts — you need to test whether the claims in the article hold up when you analyze the same data.
+
+**Read these before starting:**
+
+- **The article**: [Why Religion, Not Income, Predicts the American Vote](https://www.graphsaboutreligion.com/p/why-religion-not-income-predicts) (also saved as an HTML file in this folder)
+- **The original R code**: [GitHub Gist](https://gist.githubusercontent.com/ryanburge/ed230955ec2a3916ab09ee6c653b0f55/raw/9793fe04e2527b3308f07eaa110eb1e002be53ac/ct_selection_untitled-CD2C8FAC.R)
+
+To complete this assignment, you need to: \* run existing code as directed (look for **Task**). \* write code in empty codeblocks provided to answer questions included (look for **Q**). \* write out the answer in the form of a complete sentence in the space given (look for **A**).
+
+When you are finished, commit changes and push to your personal GitHub repo, then submit the URL to this document on ELMS.
+
+## About the data
+
+The Cooperative Election Study (CES) is one of the largest academic surveys of American political behavior. Each year it surveys roughly 60,000 adults about their demographics, political attitudes, and voting behavior. The 2024 wave was conducted online, with respondents interviewed both before and after the November election.
+
+The data file you'll use has been pre-processed from the CES 2024 Common Content. It contains the following key variables:
+
+| Variable | Description |
+|----------|-------------|
+| `weight` | Survey weight (use this for all calculations to get representative estimates) |
+| `trad` | Broad religious tradition (e.g., "White Evangelical", "Jewish", "Atheist", "Black Protestant") |
+| `income` | Household income on a 1-16 scale (see codebook below) |
+| `pid7` | 7-point party identification: 1=Strong Democrat, 2=Not very strong Democrat, 3=Lean Democrat, 4=Independent, 5=Lean Republican, 6=Not very strong Republican, 7=Strong Republican |
+| `vote_2024` | 2024 presidential vote: 1=Democrat (Harris), 2=Republican (Trump) |
+| `race` | Race/ethnicity: 1=White, 2=Black, 3=Hispanic, 4=Asian, 5=Native American, 6=Mixed, 7=Other, 8=Middle Eastern |
+| `educ` | Education level: 1=No HS, 2=HS graduate, 3=Some college, 4=2-year degree, 5=4-year degree, 6=Post-grad |
+
+**Income scale codebook:**
+
+| Value | Income Range |
+|-------|-------------|
+| 1 | Less than $10,000 |
+| 2 | $10,000 - $19,999 |
+| 3 | $20,000 - $29,999 |
+| 4 | $30,000 - $39,999 |
+| 5 | $40,000 - $49,999 |
+| 6 | $50,000 - $59,999 |
+| 7 | $60,000 - $69,999 |
+| 8 | $70,000 - $79,999 |
+| 9 | $80,000 - $99,999 |
+| 10 | $100,000 - $119,999 |
+| 11 | $120,000 - $149,999 |
+| 12 | $150,000 - $199,999 |
+| 13 | $200,000 - $249,999 |
+| 14 | $250,000 - $349,999 |
+| 15 | $350,000 - $499,999 |
+| 16 | $500,000 or more |
+
+**A note on survey weights:** The CES is designed to be representative of the U.S. adult population, but like all surveys, some groups are over- or under-represented in the raw sample. The `weight` column adjusts for this. Throughout this assignment, you should use `weighted.mean()` instead of `mean()` when calculating averages and proportions. The syntax is: `weighted.mean(variable, weight)`.
+
+## Load libraries and data
+
+**Task** Run the codeblock below to load the tidyverse and the CES data.
+
+```{r}
+library(tidyverse)
+
+ces <- readRDS("data/ces_2024_religion.rds")
+
+glimpse(ces)
+```
+
+**Task** Run the codeblock below to see how many respondents are in each religious tradition. This will help you understand the relative sizes of the groups you'll be analyzing.
+
+```{r}
+ces |>
+  count(trad, wt = weight, sort = TRUE)
+```
+
+## Questions
+
+### Q1: Mean income by religious tradition
+
+The article opens by noting that religious groups occupy very different positions on the socioeconomic ladder. In the first chart, Burge shows a scatterplot where Jewish groups, Hindus, and Episcopalians cluster at the top of the income distribution, while Pentecostal traditions cluster at the bottom.
+
+Using the broad religious tradition categories in the data, calculate the weighted mean income for each tradition. Arrange the results from highest to lowest. Which traditions have the highest mean income? Which have the lowest? Do your results match the patterns described in the article?
+
+**A1.**
+
+```{r}
+```
+
+### Q2: Income vs. Republican identification — the scatterplot
+
+The article's second key chart replaces educational attainment with the share of each tradition identifying as Republican. Burge writes that the result "practically looks like I fed a random-number generator" — there is no clear relationship between a tradition's income level and its partisan leaning.
+
+To test this, do the following:
+
+1. Create a new variable called `republican` that equals 1 if `pid7` is 5, 6, or 7 (lean, not very strong, or strong Republican), and 0 if `pid7` is 1, 2, 3, or 4. Set it to NA for any other values.
+2. For each religious tradition, calculate two things: the weighted mean income AND the weighted share that is Republican.
+3. Create a scatterplot with mean income on the y-axis and percent Republican on the x-axis. Label the points with the tradition names using `geom_text()` or `geom_text_repel()` from the ggrepel package.
+
+Does the scatterplot confirm the article's claim that there is no clear relationship between income and Republican identification across traditions?
+
+**A2.**
+
+```{r}
+```
+
+### Q3: Trump vote share by income bracket within traditions
+
+This is where the article gets to its core argument. Burge slices each religious tradition into income brackets and looks at vote choice within each bracket. He finds that for most traditions, income barely moves the needle. He specifically notes that among Southern Baptists, about two-thirds making under $40K voted for Trump, rising to about 78% among those earning $80K-$120K — a roughly ten-point increase that is "the exception, not the rule."
+
+To replicate this finding:
+
+1. Create an `income_bin` variable with four categories: "<$40K" (income values 1-4), "$40K-79K" (5-8), "$80K-119K" (9-10), "$120K+" (11-16).
+2. Create a `trump_vote` variable that equals 1 if `vote_2024` is 2 (Republican/Trump) and 0 if `vote_2024` is 1 (Democrat/Harris). Set other values to NA.
+3. Filter to only traditions with large enough sample sizes to be meaningful (at least 200 weighted respondents).
+4. For each combination of tradition and income bin, calculate the weighted share that voted for Trump.
+5. Create a faceted bar chart or point chart showing Trump vote share by income bin, with a separate facet for each tradition.
+
+Does income predict Trump voting within traditions? Which tradition shows the largest income gradient? Does your analysis match the article's findings?
+
+**A3.**
+
+```{r}
+```
+
+### Q4: The gap between traditions at the same income level
+
+The article makes perhaps its most striking claim when comparing across traditions at a fixed income: "A Southern Baptist and an atheist with the exact same income are separated by sixty percentage points in their likelihood of voting Republican." It also notes that White evangelicals sit at the top of Trump support while Black Protestants are at the bottom — even when comparing people with the same household income.
+
+To test this:
+
+1. Filter to a single income bracket (use "$40K-79K" so you have adequate sample sizes across most traditions).
+2. Calculate the weighted Trump vote share for each tradition within that income bracket.
+3. Create a horizontal bar chart with traditions on the y-axis (ordered by Trump vote share) and the vote share on the x-axis.
+4. Calculate the gap between the tradition with the highest Trump support and the one with the lowest.
+
+What is the gap between the most and least Republican traditions at the same income level? Does it approach the sixty percentage points the article claims? What does this tell you about the relative importance of religion vs. income in predicting vote choice?
+
+**A4.**
+
+```{r}
+```
+
+### Q5: The Jewish American counterfactual
+
+The article ends with a powerful thought experiment about Jewish Americans. Burge notes that Jewish Americans are white, well-educated, and high-income — on paper, a textbook profile for a Republican voter. Yet about two-thirds consistently vote for Democrats. He then runs a model and reports: "If we take the average Jewish household income and plug it into a model predicting Republican voting, we get a predicted probability of about 32%. But if we change just one thing — just flip the religious identity from 'Jewish' to 'White Evangelical' — that predicted probability jumps to 85%."
+
+You don't need to run a regression to test this basic insight. Instead:
+
+1. Calculate the weighted mean income for Jewish respondents. Round to the nearest whole number — this is your target income level.
+2. Filter the full dataset to respondents whose `income` value matches that target (or is within 1 point of it).
+3. Within that filtered group, calculate the weighted Trump vote share separately for Jewish respondents and for White Evangelical respondents.
+4. Compare the two numbers.
+
+What is the Trump vote share for Jewish respondents vs. White Evangelicals at a similar income level? Is the gap as large as what the article reports? Write 2-3 sentences explaining what this tells us about the article's central argument — that religion, not income, predicts the American vote.
+
+**A5.**
+
+```{r}
+```
+
+### Q6: Your own analysis
+
+Based on what you've found in Q1-Q5, propose and carry out one additional analysis of this data that extends or complicates the article's argument. Some possibilities: Does the religion-over-income pattern hold for education as well? Are there any traditions where income DOES seem to matter? Does the pattern differ by race within a single tradition? You are free to explore.
+
+Describe what you're testing and why, then write the code and interpret the results.
+
+**A6.**
+
+```{r}
+```
