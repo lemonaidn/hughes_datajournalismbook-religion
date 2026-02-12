@@ -15,19 +15,15 @@ knitr::opts_chunk$set(echo = TRUE)
 # Turn off scientific notation
 options(scipen=999)
 
-# Load the tidyverse. If you have not installed the tidyverse already, remove the # from the next line and run it first.  
-# install.packages('tidyverse')
 library(tidyverse)
 library(lubridate)
 ```
 
 ## Load Data
 
-Let's keep working with the Maryland churches data and the Maryland campaign expenses data we used in the pre_lab.
+Let's keep working with the Maryland churches data and the Maryland campaign expenses data we used in the pre_lab. Write code to load those two CSV files from the data folder.
 
 ```{r}
-md_churches <- read_csv("data/churches_md.csv")
-maryland_expenses <- read_csv("data/md_church_expenditures.csv")
 ```
 
 ## Answer questions
@@ -43,7 +39,7 @@ maryland_expenses <- read_csv("data/md_church_expenditures.csv")
 
 **A2.**
 
-**Q3** The campaign expense data contains payments to churches in Maryland. Write code that finds only those payments made to churches by party central committees (there are a couple of ways to do this, but one simple way). Which party committee spent the most total dollars and how much did they spend? **A3.** 
+**Q3** The campaign expense data contains payments to churches in Maryland. Write code that finds only those payments made to churches by party central committees (there are a couple of ways to do this, but one simple way). Then write code to find which party committee spent the most total dollars and how much did they spend? **A3.**
 
 ```{r}
 ```
@@ -54,7 +50,7 @@ maryland_expenses <- read_csv("data/md_church_expenditures.csv")
 
 ```
 
-**Q5.** Using the `md_churches` data, create a column using `mutate()` and `case_when()` that tries to accomplish the same thing we did in the pre_lab - pulling the denomination or faith from church names. This will take longer than the pre_lab because there are more churches in the data, and you should use https://www.thearda.com/us-religion/census/congregational-membership?y=2020&y2=0&t=1&c=24 as a reference for the most common denominations in Maryland. What you want is to populate your new column with something like the "Family" column on that web page, using "Other" for those you're not able to classify. After creating your new column, write code that shows the top five denominations or faiths by number of churches in Maryland. You won't get all of them, but try to get as many as you can. Do these totals seem accurate to you? Are there denominations or faith groups that are obviously missing? Which one(s)?
+**Q5.** Using the `md_churches` data, create a column using `mutate()` and `case_when()` that tries to accomplish the same thing we did in the pre_lab - pulling the denomination or faith from church names. This will take longer than the pre_lab because there are more churches in the data, and you should use <https://www.thearda.com/us-religion/census/congregational-membership?y=2020&y2=0&t=1&c=24> as a reference for the most common denominations in Maryland. What you want is to populate your new column with something like the "Family" column on that web page, using "Other" for those you're not able to classify. After creating your new column, write code that shows the top five denominations or faiths by number of churches in Maryland. You won't get all of them, but try to get as many as you can. Do these totals seem accurate to you? Are there denominations or faith groups that are obviously missing? Which one(s)?
 
 **A5**
 
