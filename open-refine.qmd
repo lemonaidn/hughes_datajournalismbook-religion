@@ -33,7 +33,7 @@ Let's load that Maryland state government grants and loan data that we've been w
 
 ```{r include=FALSE}
 
-md_grant_loans <- read_csv("data/State_of_Maryland_Grant_and_Loan_Data__FY2009_to_FY2022_20250115.csv") |> 
+md_grant_loans <- read_csv("data/State_of_Maryland_Grant_and_Loan_Data__FY2009_to_FY2024_20260122.csv") |> 
   mutate(Grantee = str_to_upper(Grantee))
 
 ```
