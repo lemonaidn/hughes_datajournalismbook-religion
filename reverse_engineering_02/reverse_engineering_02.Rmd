@@ -81,77 +81,66 @@ tail(simulation, 1)
 
 ## Questions
 
+Your task is to replicate five specific findings from the article by examining the data. For each question, find the relevant numbers in the datasets and verify whether they match what the article reports.
+
 ### Q1: Retention rates
 
-The article reports specific retention rates: the share of people raised in a religion who still identify with it as adults. For example, the article says that evangelical Protestants have a 65% retention rate, Catholics have 59%, and mainline Protestants have 45%.
+The article reports: "Hindus, Mormons and Jews have the highest retention rates, at 80%, 76% and 75% respectively. Evangelical Protestants have a retention rate of 65%, while Catholics have a rate of 59%. Mainline Protestants have the lowest rate, at 45%."
 
-The retention rate for each religion is simply the diagonal of the transition matrix — the value in the row and column for the same religion. Extract the retention rate for each religion from the transition matrix. Which religion has the highest retention rate? Which has the lowest? Do your numbers match what the article reports for evangelicals, Catholics, and mainline Protestants?
+The retention rate for each religion is the value in the transition matrix where the row and column are the same religion (the diagonal). For example, to find the retention rate for Catholics, look at the row for Catholic and the column for Catholic.
+
+Find the retention rates for all 12 religions in the transition matrix. Do your numbers match what the article reports? Write a sentence reporting the retention rate for Hindus, Mormons, Jews, Evangelical Protestants, Catholics, and Mainline Protestants.
 
 **A1.**
 
 ```{r}
 ```
 
-### Q2: Where do the converts go?
+### Q2: Catholic to Evangelical Protestant conversions
 
-The article highlights several specific conversion flows: "About 10 percent of people raised Catholic now identify as evangelical Protestants ... while only 2 percent of people raised as evangelicals are now Catholic." It also notes that "19 percent of people raised as mainline Protestants now identify as evangelical, while only 12 percent of evangelicals have become mainline Protestants."
+The article states: "About 10 percent of people raised Catholic now identify as evangelical Protestants ... while only 2 percent of people raised as evangelicals are now Catholic."
 
-Using the transition matrix, verify these specific claims. For each of the following pairs, find the conversion rate in each direction:
+In the transition matrix, find the value in the Catholic row and the Evangelical Protestant column (this shows what percent of people raised Catholic are now Evangelical Protestant). Then find the value in the Evangelical Protestant row and the Catholic column.
 
-- Catholic → Evangelical Protestant, and Evangelical Protestant → Catholic
-- Mainline Protestant → Evangelical Protestant, and Evangelical Protestant → Mainline Protestant
-
-Then pick one additional religion and describe where its members go when they leave. What are the top two or three destinations?
+Do these numbers match the article's claim? Write a sentence stating what you found.
 
 **A2.**
 
 ```{r}
 ```
 
-### Q3: Net winners and losers from conversion alone
+### Q3: Mainline to Evangelical Protestant conversions
 
-The article builds toward one of its core findings: some religions are net winners from conversion (they gain more members than they lose), while others are net losers. The article reports that if current switching patterns continued until the population stabilized, evangelical Protestants would grow from 26% to 32%, the unaffiliated would grow from 23% to 29%, while Catholics would shrink from 21% to 8%.
+The article reports: "About 19 percent of people raised as mainline Protestants now identify as evangelical, while only 12 percent of evangelicals have become mainline Protestants."
 
-To test this, you need to apply the transition matrix to the initial distribution — one "generation" of switching. Here's the logic: if you multiply the share of people in each religion by their probability of switching to each other religion, you get the new distribution after one round of conversion.
-
-Do the following:
-1. Start with the initial distribution (as a named vector or single-row dataframe of the 12 religion shares, normalized to sum to 1).
-2. Create a matrix version of the transition probabilities (just the numeric columns from the transition matrix).
-3. Multiply the initial distribution by the transition matrix to get the distribution after one round of switching. In R, if `init` is a 1x12 matrix and `trans` is a 12x12 matrix, the operation is `init %*% trans`.
-4. Repeat this multiplication several more times (try 100 iterations in a loop) to see where the distribution stabilizes.
-5. Compare your final (equilibrium) distribution to the starting distribution. Which religions gained? Which lost? Does your result match the article's claim about evangelicals reaching 32% and Catholics falling to 8%?
-
-*Note: For this question, do NOT include fertility — just conversion alone.*
+Using the transition matrix, find these two conversion rates. Do they match what the article says? Write a sentence stating what you found.
 
 **A3.**
 
 ```{r}
 ```
 
-### Q4: Verify against the original simulation
+### Q4: Starting religious distribution
 
-The file `current.csv` contains the output from the original Python simulation, which DID include fertility rates. Each row represents one "year" (iteration), and each column is the share of the population in that religion.
+The article describes what share of Americans were raised in each religious tradition. Look at the `initial_distribution.csv` file, which shows these starting percentages.
 
-The original model works like this each iteration: (1) apply the transition matrix (conversion), (2) divide each group's share by 2 (to represent couples), (3) multiply by fertility rates, and (4) re-normalize to sum to 1.
-
-Replicate this simulation in R:
-1. Start with the initial distribution (normalized to sum to 1).
-2. For each of 100 iterations: apply the transition matrix, divide by 2, multiply by the fertility rates, and normalize.
-3. Compare your final distribution to the last row of `current.csv`. They should match (or be very close).
-4. What are the biggest differences between the conversion-only equilibrium (Q3) and the conversion-plus-fertility equilibrium? Which religions benefit most from including fertility? Which are hurt most?
-
-The article notes that with fertility included, Mormons (fertility rate of 3.4 children per woman) would eventually reach 22% of the population, and Muslims (2.8) would reach 8%, while the unaffiliated (1.7) would actually shrink from 23% to 19% instead of growing.
+According to this data, what are the three largest religious traditions people were raised in? What percent of Americans were raised Catholic? What percent were raised as Evangelical Protestants? What percent were raised Unaffiliated (with no religion)? Write 2-3 sentences describing the starting distribution.
 
 **A4.**
 
 ```{r}
 ```
 
-### Q5: Limitations and story ideas
+### Q5: Final distribution with fertility rates
 
-The article's model makes several simplifying assumptions: conversion rates stay constant, fertility rates don't change, there's no immigration, and there are no generational differences in switching behavior.
+The article's model projects what would happen if current conversion patterns and fertility rates continued for many generations. The file `current.csv` contains this simulation output. The last row (row 101) shows the projected equilibrium.
 
-Think about this as a data journalist. What are the most important limitations of this model? If you were writing a follow-up story, what additional data would you want? Pick one specific limitation and describe how it might change the conclusions. Write 3-4 sentences.
+The article states: "Mormons... would eventually reach 22% of the population" and "Muslims would reach 8%" while "the unaffiliated would actually shrink from 23% to 19%."
+
+Look at the last row of the simulation data. What percentages does it show for Mormons, Muslims, and Unaffiliated? Do these match the article's claims? Also identify which religious group ends up with the largest share. Write 2-3 sentences describing what you found.
 
 **A5.**
+
+```{r}
+```
 
