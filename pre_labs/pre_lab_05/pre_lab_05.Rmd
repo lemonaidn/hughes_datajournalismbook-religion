@@ -22,11 +22,12 @@ knitr::opts_chunk$set(echo = TRUE)
 # turn off sci notation
 options(scipen=999)
 library(tidyverse)
+library(janitor)
 ```
 
 ## PDF Parsing with Tabula
 
-Tabula works best when tables in PDFs are clearly defined and have nicely-formatted information. Here's a perfect example: [active voters by county in Maryland](https://www.elections.maryland.gov/press_room/2022_stats/GG22/Eligible%20Active%20Voters%20by%20County%20-%20GG22.pdf).
+Tabula works best when tables in PDFs are clearly defined and have nicely-formatted information. Here's a perfect example: [denominational counts from the Association of Statisticians of American Religious Bodies](http://www.asarb.org/ASARB_Standard_Denominational_Adherents_2022.pdf).
 
 ### Task 1: Download and Install Tabula
 
@@ -35,34 +36,34 @@ Tabula works best when tables in PDFs are clearly defined and have nicely-format
 When Tabula opens, you click browse to find the PDF on your computer somewhere, and then click import. After it imports, click autodetect tables. You'll see red boxes appear around what Tabula believes are the tables. You'll see it does a pretty good job at this.
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_voters.png"))
+knitr::include_graphics(rep("images/asarb1.png"))
 ```
 
 Now you can hit the green "Preview & Export Extracted Data" button on the top right. You should see something very like this:
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_voters2.png"))
+knitr::include_graphics(rep("images/asarb2.png"))
 ```
 
-You can now export that extracted table to a CSV file using the "Export" button. Put it in your pre_lab_05 folder. And then we can read it into R:
+You can now export that extracted table to a CSV file using the "Export" button. Move the CSV file into your pre_lab_05 folder. And then we can read it into R:
 
 ### Task 2: Load data
 
-**Task** Load the Maryland voters by county data by running the following codeblock.
+**Task** Load the adherents data by running the following codeblock.
 
 ```{r}
-voters_by_county <- read_csv("tabula-Eligible Active Voters by County - GG22.csv")
-View(voters_by_county)
+adherents <- read_csv("tabula-ASARB_Standard_Denominational_Adherents_2022.csv")
+View(adherents)
 ```
 
 Boom - we're good to go.
 
 ## When it looks good, but needs a little fixing
 
-Here's a slightly more involved PDF, from [Maryland's 2020 annual report on unintentional drug and alcohol-related intoxication deaths](https://health.maryland.gov/vsa/Documents/Overdose/Annual_2020_Drug_Intox_Report.pdf). Specifically, we're looking at Table 7 on page 67 of the report which lists the number of fentanyl-related deaths by jurisdiction:
+Here's a slightly more involved PDF, from [a 2010 Census Bureau report on religious population by state](https://www2.census.gov/library/publications/2010/compendia/statab/130ed/tables/11s0077.pdf). Specifically, we're looking at Table 77 which lists the number and percentage of Christian and Jewish adherents by state:
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_fentanyl_deaths_1.png"))
+knitr::include_graphics(rep("images/census1.png"))
 ```
 
 ### Task 3: Get it into Tabula
@@ -74,7 +75,7 @@ Looks like a spreadsheet, right? Save that PDF file to your computer in a place 
 Now let's repeat the steps we did to import the PDF into Tabula, go to page 67. It should look like this:
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_fentanyl_deaths_2.png"))
+knitr::include_graphics(rep("images/census2.png"))
 ```
 
 ### Task 4: Draw a Box
@@ -84,13 +85,13 @@ knitr::include_graphics(rep("images/md_fentanyl_deaths_2.png"))
 Let's draw a box around what we want, but there's a catch: the headers aren't on a single line. If you draw your box around the whole table and preview, you'll see that there's a problem. To fix that, we'll need to limit our box to just the data. Using your cursor, click and drag a box across the table so it looks like this:
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_fentanyl_deaths_3.png"))
+knitr::include_graphics(rep("images/census3.png"))
 ```
 
 Now you can hit the green "Preview & Export Extracted Data" button on the top right. Using the "Stream" method, you should see something very like this:
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_fentanyl_deaths_4.png"))
+knitr::include_graphics(rep("images/census4.png"))
 ```
 
 You can now export that extracted table to a CSV file using the "Export" button. And then we can read it into R and clean up the column names and some other things:
@@ -100,9 +101,9 @@ You can now export that extracted table to a CSV file using the "Export" button.
 **Task** Export the CSV file to your pre_lab_05 folder and read it into R by running the following codeblock. What problems do you see with the data? **Answer**
 
 ```{r}
-fentanyl_deaths <- read_csv("tabula-Annual_2020_Drug_Intox_Report.csv") |> clean_names()
+adherents <- read_csv("tabula-11s0077.csv") |> clean_names()
 
-fentanyl_deaths
+adherents
 ```
 
 ## Cleaning up the data in R
@@ -114,9 +115,9 @@ The good news is that we have data we don't have to retype. The bad news is, we 
 **Task** Load the data without headers by running the codeblock below. What problems remain? **Answer**
 
 ```{r}
-fentanyl_deaths <- read_csv("tabula-Annual_2020_Drug_Intox_Report.csv", col_names = FALSE) |> clean_names()
+adherents <- read_csv("tabula-11s0077.csv", col_names = FALSE) |> clean_names()
 
-fentanyl_deaths
+adherents
 ```
 
 Ok, now we have all the data. But we need actual headers. Let's add those using `rename()`, keeping in mind that the new name comes *first*.
@@ -126,13 +127,44 @@ Ok, now we have all the data. But we need actual headers. Let's add those using 
 **Task** Run the codeblock below. What else do we need to do? **Answer**
 
 ```{r}
-fentanyl_deaths <- read_csv("tabula-Annual_2020_Drug_Intox_Report.csv", col_names = FALSE) |> 
-  clean_names() |> 
-  rename(jurisdiction = x1, deaths_2011 = x2, deaths_2012 = x3, deaths_2013 = x4, deaths_2014 = x5, deaths_2015 = x6, deaths_2016 = x7, deaths_2017 = x8, 
-         deaths_2018 = x9, deaths_2019 = x10, deaths_2020 = x11, deaths_total = x12)
+adherents <- read_csv("tabula-11s0077.csv", col_names = FALSE) |> clean_names() |> 
+  rename(state = x1, christian_2000 = x2, christian_2000_pct = x3, jewish_2009 = x4, jewish_2009_pct = x5, state2 = x6, christian_2000_2 = x7, christian_2000_pct_2 = x8, 
+         jewish_2009_2 = x9, jewish_2009_pct_2 = x10)
 
-fentanyl_deaths
+adherents
 ```
+
+### Task 8: Split the two halves and recombine
+
+We have two sets of columns here, one for each half of the page. Let's split them apart and then recombine them vertically. We'll do that using `select()` to grab the columns we want, `rename()` to make the column names the same and then `bind_rows()` to stack them vertically (we'll learn more about `bind_rows()` soon).
+
+
+```{r}
+left_half <- adherents |>
+  select(state, christian_2000, christian_2000_pct, jewish_2009, jewish_2009_pct)
+
+right_half <- adherents |>
+  select(state2, christian_2000_2, christian_2000_pct_2, jewish_2009_2, jewish_2009_pct_2) |>
+  rename(state = state2, 
+         christian_2000 = christian_2000_2, 
+         christian_2000_pct = christian_2000_pct_2,
+         jewish_2009 = jewish_2009_2, 
+         jewish_2009_pct = jewish_2009_pct_2) |>
+  mutate(
+    christian_2000 = as.numeric(christian_2000),
+    christian_2000_pct = as.numeric(christian_2000_pct),
+    jewish_2009 = as.numeric(jewish_2009),
+    jewish_2009_pct = as.numeric(jewish_2009_pct)
+  )
+
+adherents_combined <- bind_rows(left_half, right_half) |>
+  filter(!is.na(state))  # Remove any empty rows
+
+# View the result
+adherents_combined
+```
+
+
 
 We could stop here, but there are a bunch of periods in the jurisdiction column and it's better to remove them - it will make filtering easier. Let's use `str_replace_all()` to do that:
 
