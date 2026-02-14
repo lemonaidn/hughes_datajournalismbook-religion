@@ -1,7 +1,7 @@
 ---
 title: "pre_lab_05.Rmd"
 author: "derek willis"
-date: "2025-01-15"
+date: "2026-02-14"
 output: html_document
 ---
 
@@ -136,12 +136,20 @@ adherents
 
 ### Task 8: Split the two halves and recombine
 
-We have two sets of columns here, one for each half of the page. Let's split them apart and then recombine them vertically. We'll do that using `select()` to grab the columns we want, `rename()` to make the column names the same and then `bind_rows()` to stack them vertically (we'll learn more about `bind_rows()` soon).
+We have two sets of columns here, one for each half of the page. Let's split them apart and then recombine them vertically. We'll do that using `select()` to grab the columns we want, `rename()` to make the column names the same and then `bind_rows()` to stack them vertically (we'll learn more about `bind_rows()` soon). We also make sure that both sets of columns are numeric.
+
+**Task** Run the codeblock below. Look carefully at the results and identify and problems or issues **Answer**  
 
 
 ```{r}
 left_half <- adherents |>
-  select(state, christian_2000, christian_2000_pct, jewish_2009, jewish_2009_pct)
+  select(state, christian_2000, christian_2000_pct, jewish_2009, jewish_2009_pct) |>
+    mutate(
+    christian_2000 = as.numeric(christian_2000),
+    christian_2000_pct = as.numeric(christian_2000_pct),
+    jewish_2009 = as.numeric(jewish_2009),
+    jewish_2009_pct = as.numeric(jewish_2009_pct)
+  )
 
 right_half <- adherents |>
   select(state2, christian_2000_2, christian_2000_pct_2, jewish_2009_2, jewish_2009_pct_2) |>
@@ -164,29 +172,69 @@ adherents_combined <- bind_rows(left_half, right_half) |>
 adherents_combined
 ```
 
+### Task 9: Replace the spaces and repeat
 
+What's causing those NAs is that the values in them were "47 .4" and "2 .1" - those can't be successfully converted into numbers without removing the space. We'll use a function called `str_replace()` to remove those extra spaces in all of the data columns (the Jewish populations of North and South Dakota are so small that they don't get actual values here) before re-running the code from above.
 
-We could stop here, but there are a bunch of periods in the jurisdiction column and it's better to remove them - it will make filtering easier. Let's use `str_replace_all()` to do that:
+**Task** Run the codeblock below. Look carefully at the results and identify and remaining problems or issues **Answer**  
 
-### Task 8: Replace the periods
+```{r}
+adherents <- adherents |>
+  mutate(
+    christian_2000_pct = str_replace(christian_2000_pct, " \\.", "."),
+    jewish_2009_pct = str_replace(jewish_2009_pct, " \\.", "."),
+    christian_2000_pct_2 = str_replace(christian_2000_pct_2, " \\.", "."),
+    jewish_2009_pct_2 = str_replace(jewish_2009_pct_2, " \\.", ".")
+  )
+
+left_half <- adherents |>
+  select(state, christian_2000, christian_2000_pct, jewish_2009, jewish_2009_pct) |>
+    mutate(
+    christian_2000 = as.numeric(christian_2000),
+    christian_2000_pct = as.numeric(christian_2000_pct),
+    jewish_2009 = as.numeric(jewish_2009),
+    jewish_2009_pct = as.numeric(jewish_2009_pct)
+  )
+
+right_half <- adherents |>
+  select(state2, christian_2000_2, christian_2000_pct_2, jewish_2009_2, jewish_2009_pct_2) |>
+  rename(state = state2, 
+         christian_2000 = christian_2000_2, 
+         christian_2000_pct = christian_2000_pct_2,
+         jewish_2009 = jewish_2009_2, 
+         jewish_2009_pct = jewish_2009_pct_2) |>
+  mutate(
+    christian_2000 = as.numeric(christian_2000),
+    christian_2000_pct = as.numeric(christian_2000_pct),
+    jewish_2009 = as.numeric(jewish_2009),
+    jewish_2009_pct = as.numeric(jewish_2009_pct)
+  )
+
+adherents_combined <- bind_rows(left_half, right_half) |>
+  filter(!is.na(state))  # Remove any empty rows
+
+# View the result
+adherents_combined
+
+```
+
+We could stop here, but there are a bunch of periods in the state column and it's better to remove them - it will make filtering easier. Let's use `str_remove_all()` to do that, too. First we'll replace all periods and then all spaces: 
+
+### Task 8: Replace the periods and spaces in state
 
 **Task** Run the codeblock below.
 
 ```{r}
-fentanyl_deaths <- read_csv("tabula-Annual_2020_Drug_Intox_Report.csv", col_names = FALSE) |> 
-  clean_names() |> 
-  rename(jurisdiction = x1, deaths_2011 = x2, deaths_2012 = x3, deaths_2013 = x4, deaths_2014 = x5, deaths_2015 = x6, deaths_2016 = x7, deaths_2017 = x8, 
-         deaths_2018 = x9, deaths_2019 = x10, deaths_2020 = x11, deaths_total = x12) |> 
-  mutate(jurisdiction = str_squish(str_replace_all(jurisdiction,'\\.','')))
+adherents_combined <- adherents_combined |>
+  mutate(state = str_remove_all(state, "\\.") |> str_remove_all(" "))
 
-fentanyl_deaths
+
 ```
 
 There are a few important things to explain here:
 
 1.  Because we're replacing a literal period (.), we need to make sure that R knows that. Hence the '\\.' Why? Because '.' is a valid expression meaning "any character", so if we didn't have the backslashes the above code would make the entire column blank (try it!)
-2.  The `str_squish` function cleans up any excess spaces, at the beginning, middle or end of a character column. If we then use filter, we can do so with confidence.
-3.  I put "deaths\_" in front of each yearly column because R likes it when columns don't begin with a number. You can have a column called `2011`, but you literally have to use the backticks (`2011`) to refer to it in code.
+2.  We need to use str_remove_all() twice because we're removing two different things.
 
 All things considered, that was pretty easy. Many - most? - electronic PDFs aren't so easy to parse. Sometimes you'll need to open the exported CSV file and clean things up before importing into R. Other times you'll be able to do that cleaning in R itself.
 
