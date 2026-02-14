@@ -1,0 +1,101 @@
+---
+title: "Reverse Engineering: Religion and Voting"
+author: "Student Name"
+date: "2026-02-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+## Introduction
+
+In this reverse engineering assignment, you will analyze data from the Cooperative Election Study (CES) to reproduce key findings from Ryan Burge's article: ["Why Religion, Not Income, Predicts the American Vote"](https://www.graphsaboutreligion.com/p/why-religion-not-income-predicts).
+
+The article argues that religious identity is a far stronger predictor of how Americans vote than household income. Using data from the 2024 CES, Burge demonstrates that even when comparing people with identical incomes, their religious affiliation creates massive gaps in voting behavior. A copy of the article has been saved as an HTML file in this folder.
+
+### Your Assignment
+
+1. **Read the article carefully** and identify the key facts, figures, and claims the author presents
+2. **Examine the CES data** provided in the `data/` folder
+3. **Write your own code** to reproduce those key findings
+4. **Document your work** with clear comments explaining your analysis
+
+Your notebook should be well-organized, clearly commented, and demonstrate that you can independently reproduce data journalism findings. Think like a fact-checker: verify the claims made in the article.
+
+## The Data
+
+The Cooperative Election Study (CES) is one of the largest academic surveys of American political behavior, surveying roughly 60,000 adults each year about their demographics, political attitudes, and voting behavior.
+
+The data file `ces_2024_religion.rds` (also available as `ces_2024_religion.csv`) has been pre-processed from the CES 2024 Common Content and contains only the variables you need:
+
+- **weight**: Survey weight (use this for all calculations to get representative estimates)
+- **trad**: Broad religious tradition (e.g., "White Evangelical", "Jewish", "Atheist", "Black Protestant")
+- **income**: Household income on a 1-16 scale (see codebook below)
+- **pid7**: 7-point party identification scale (1=Strong Democrat, 4=Independent, 7=Strong Republican)
+- **vote_2024**: 2024 presidential vote (1=Democrat/Harris, 2=Republican/Trump)
+- **race**: Race/ethnicity (1=White, 2=Black, 3=Hispanic, 4=Asian, 5=Native American, 6=Mixed, 7=Other, 8=Middle Eastern)
+- **educ**: Education level (1=No HS, 2=HS graduate, 3=Some college, 4=2-year, 5=4-year, 6=Post-grad)
+
+### Income Scale Codebook
+
+| Value | Income Range          |
+|-------|-----------------------|
+| 1     | Less than $10,000    |
+| 2     | $10,000 - $19,999   |
+| 3     | $20,000 - $29,999   |
+| 4     | $30,000 - $39,999   |
+| 5     | $40,000 - $49,999   |
+| 6     | $50,000 - $59,999   |
+| 7     | $60,000 - $69,999   |
+| 8     | $70,000 - $79,999   |
+| 9     | $80,000 - $99,999   |
+| 10    | $100,000 - $119,999 |
+| 11    | $120,000 - $149,999 |
+| 12    | $150,000 - $199,999 |
+| 13    | $200,000 - $249,999 |
+| 14    | $250,000 - $349,999 |
+| 15    | $350,000 - $499,999 |
+| 16    | $500,000 or more     |
+
+### Important Note on Survey Weights
+
+The CES is designed to be representative of the U.S. adult population. Like all surveys, some groups are over- or under-represented in the raw sample. The `weight` column adjusts for this.
+
+**You must use `weighted.mean()` instead of `mean()` when calculating averages and proportions.** The syntax is: `weighted.mean(variable, weight)`.
+
+## Load Libraries and Data
+
+```{r}
+# Load required libraries
+library(tidyverse)
+
+# Load the CES data
+
+
+```
+
+## Analysis
+
+Now it's your turn. Read through Burge's article and identify the key facts and claims made. Then write well-commented code below to reproduce those findings using the CES data.
+
+Some questions to guide your work:
+- What does the article say about income differences across religious traditions?
+- What relationship (or lack thereof) does the article find between income and Republican identification across traditions?
+- What does the article show about voting patterns within income brackets for different religious groups?
+- What is the article's key claim about comparing people at the same income level but different religions?
+- What specific comparisons does the article make (e.g., Southern Baptists vs. atheists, Jewish Americans vs. White Evangelicals)?
+
+Structure your analysis with clear section headers and comments explaining what you're testing and what you found. Remember to use survey weights in all calculations.
+
+```{r}
+# Your analysis code here
+
+```
+
+## Findings
+
+Write a summary of your findings here. Did your analysis confirm what the article reported? Were there any discrepancies? What did you learn about the relationship between religion, income, and voting behavior in America?
+

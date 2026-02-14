@@ -1,0 +1,75 @@
+---
+title: "Reverse Engineering: Changing Faiths"
+author: "Student Name"
+date: "2026-02-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+## Introduction
+
+In this reverse engineering assignment, you will analyze data from Pew Research Center's 2014 Religious Landscape Study to reproduce key findings from FiveThirtyEight's analysis: ["Evangelical Protestants Are The Biggest Winners When People Change Faiths"](http://fivethirtyeight.com/datalab/evangelical-protestants-are-the-biggest-winners-when-people-change-faiths/) by Leah Libresco.
+
+The article uses survey data on religious switching patterns and fertility rates to project what America's religious makeup would look like if current trends continued for many generations. A copy of the article has been saved as an HTML file in this folder.
+
+### Your Assignment
+
+1. **Read the article carefully** and identify the key facts and figures the reporter presents
+2. **Examine the data** provided in the `data/` folder
+3. **Write your own code** to reproduce those key findings
+4. **Document your work** with clear comments explaining your analysis
+
+Your notebook should be well-organized, clearly commented, and demonstrate that you can independently reproduce data journalism findings.
+
+## The Data
+
+The data comes from Pew's 2014 Religious Landscape Study, which surveyed more than 35,000 Americans about their religious beliefs and practices. The key question: what religion were you raised in, and what religion are you now?
+
+You have four data files in the `data/` folder:
+
+- **transition_matrix.csv**: A 12x12 matrix of switching probabilities. Each row represents a religion someone was raised in; each column represents their current religion. Values are probabilities (each row sums to approximately 1.0).
+
+- **initial_distribution.csv**: The starting share of each religion in the U.S. population (the proportion of Americans raised in each tradition).
+
+- **fertility_rates.csv**: Average number of children per woman for each religious group.
+
+- **current.csv**: The output of FiveThirtyEight's simulation showing projected religious distribution over 101 iterations as the model approaches equilibrium.
+
+The 12 religious categories are: Buddhist, Catholic, Evangelical Protestant, Hindu, Historically Black Protestant, Jehovah's Witness, Jewish, Mainline Protestant, Mormon, Muslim, Orthodox Christian, and Unaffiliated.
+
+## Load Libraries and Data
+
+```{r}
+# Load required libraries
+library(tidyverse)
+
+# Load the datasets
+
+
+```
+
+## Analysis
+
+Now it's your turn. Read through the FiveThirtyEight article and identify the key facts and claims made. Then write well-commented code below to reproduce those findings using the data provided.
+
+Some questions to guide your work:
+- What does the article say about retention rates for different religious groups?
+- What patterns of religious switching does the article highlight?
+- What does the model project about the future religious makeup of America?
+- How do fertility rates factor into the projections?
+
+Structure your analysis with clear section headers and comments explaining what you're testing and what you found.
+
+```{r}
+# Your analysis code here
+
+```
+
+## Findings
+
+Write a summary of your findings here. Did your analysis confirm what the article reported? Were there any discrepancies? What did you learn about religious switching patterns in America?
+

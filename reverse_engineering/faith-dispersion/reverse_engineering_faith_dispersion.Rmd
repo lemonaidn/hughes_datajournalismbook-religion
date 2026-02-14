@@ -1,0 +1,84 @@
+---
+title: "Reverse Engineering: Non-Christian Faith Dispersion"
+author: "Student Name"
+date: "2026-02-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+## Introduction
+
+In this reverse engineering assignment, you will analyze Mike McMullen's report "The Rise and Geographic Dispersion of Non-Christian Faith Traditions in the United States" and reproduce key quantitative findings using data from the 2020 U.S. Religion Census.
+
+**Your task:**
+
+1.  Read the report carefully (PDF file in this folder)
+2.  Identify key facts and statistics that were produced through data analysis
+3.  Write well-commented, well-structured R code to reproduce those findings
+4.  Focus on replicable quantitative sentences (not the maps)
+
+**Important:** This is NOT a step-by-step walkthrough. You are expected to independently: - Identify which claims in the report can be verified with data - Determine what data you need and how to obtain it - Clean and analyze the data appropriately - Reproduce the findings with your own code
+
+## Load Libraries
+
+```{r}
+# Load the tidyverse and any other libraries you need
+
+
+```
+
+## Load Data
+
+```{r}
+# Load the 2020 U.S. Religion Census data
+# You will need to download this from usreligioncensus.org
+# and determine which variables/tables to use
+
+
+```
+
+## Questions to Guide Your Analysis
+
+As you read the report, consider these questions:
+
+1.  **What are the main quantitative claims?** Look for specific percentages, counts, or comparisons in the text and tables.
+
+2.  **What data sources were used?** The report primarily uses the 2020 U.S. Religion Census data aggregated at the county level.
+
+3.  **What is the methodology?** How did the author define "high-concentration areas" (6+ houses of worship per metro area)? How were gateway cities classified?
+
+4.  **What can you reproduce?** Focus on the percentage breakdowns in Tables 1-7 that show the distribution of houses of worship across different gateway city types.
+
+5.  **What calculations are needed?** You'll likely need to:
+
+    -   Count houses of worship by metropolitan area
+    -   Filter for high-concentration areas (6+ houses of worship)
+    -   Classify metropolitan areas by gateway type
+    -   Calculate percentages of houses of worship in each gateway category
+
+## Your Analysis
+
+Write your code below to reproduce key findings from the report. For each finding: - State the claim from the report - Show your code with clear comments - Present your results - Compare to what the report stated
+
+```{r}
+# Your analysis here
+
+
+```
+
+## Findings
+
+Summarize what you were able to reproduce and any discrepancies you found.
+
+## Challenges and Limitations
+
+Describe any challenges you encountered: - What data was difficult to obtain or prepare? - What assumptions did you have to make? - What findings could not be reproduced and why?
+
+## Data Sources
+
+-   2020 U.S. Religion Census: <https://www.usreligioncensus.org/>
+-   Gateway city classifications based on Singer et al. (2008)
