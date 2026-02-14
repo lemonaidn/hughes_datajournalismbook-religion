@@ -101,9 +101,9 @@ You can now export that extracted table to a CSV file using the "Export" button.
 **Task** Export the CSV file to your pre_lab_05 folder and read it into R by running the following codeblock. What problems do you see with the data? **Answer**
 
 ```{r}
-adherents <- read_csv("tabula-11s0077.csv") |> clean_names()
+census_adherents <- read_csv("tabula-11s0077.csv") |> clean_names()
 
-adherents
+census_adherents
 ```
 
 ## Cleaning up the data in R
@@ -115,9 +115,9 @@ The good news is that we have data we don't have to retype. The bad news is, we 
 **Task** Load the data without headers by running the codeblock below. What problems remain? **Answer**
 
 ```{r}
-adherents <- read_csv("tabula-11s0077.csv", col_names = FALSE) |> clean_names()
+census_adherents <- read_csv("tabula-11s0077.csv", col_names = FALSE) |> clean_names()
 
-adherents
+census_adherents
 ```
 
 Ok, now we have all the data. But we need actual headers. Let's add those using `rename()`, keeping in mind that the new name comes *first*.
@@ -127,11 +127,11 @@ Ok, now we have all the data. But we need actual headers. Let's add those using 
 **Task** Run the codeblock below. What else do we need to do? **Answer**
 
 ```{r}
-adherents <- read_csv("tabula-11s0077.csv", col_names = FALSE) |> clean_names() |> 
+census_adherents <- read_csv("tabula-11s0077.csv", col_names = FALSE) |> clean_names() |> 
   rename(state = x1, christian_2000 = x2, christian_2000_pct = x3, jewish_2009 = x4, jewish_2009_pct = x5, state2 = x6, christian_2000_2 = x7, christian_2000_pct_2 = x8, 
          jewish_2009_2 = x9, jewish_2009_pct_2 = x10)
 
-adherents
+census_adherents
 ```
 
 ### Task 8: Split the two halves and recombine
@@ -142,7 +142,7 @@ We have two sets of columns here, one for each half of the page. Let's split the
 
 
 ```{r}
-left_half <- adherents |>
+left_half <- census_adherents |>
   select(state, christian_2000, christian_2000_pct, jewish_2009, jewish_2009_pct) |>
     mutate(
     christian_2000 = as.numeric(christian_2000),
@@ -151,7 +151,7 @@ left_half <- adherents |>
     jewish_2009_pct = as.numeric(jewish_2009_pct)
   )
 
-right_half <- adherents |>
+right_half <- census_adherents |>
   select(state2, christian_2000_2, christian_2000_pct_2, jewish_2009_2, jewish_2009_pct_2) |>
   rename(state = state2, 
          christian_2000 = christian_2000_2, 
@@ -165,11 +165,11 @@ right_half <- adherents |>
     jewish_2009_pct = as.numeric(jewish_2009_pct)
   )
 
-adherents_combined <- bind_rows(left_half, right_half) |>
+census_adherents_combined <- bind_rows(left_half, right_half) |>
   filter(!is.na(state))  # Remove any empty rows
 
 # View the result
-adherents_combined
+census_adherents_combined
 ```
 
 ### Task 9: Replace the spaces and repeat
@@ -179,7 +179,7 @@ What's causing those NAs is that the values in them were "47 .4" and "2 .1" - th
 **Task** Run the codeblock below. Look carefully at the results and identify and remaining problems or issues **Answer**  
 
 ```{r}
-adherents <- adherents |>
+census_adherents <- census_adherents |>
   mutate(
     christian_2000_pct = str_replace(christian_2000_pct, " \\.", "."),
     jewish_2009_pct = str_replace(jewish_2009_pct, " \\.", "."),
@@ -187,7 +187,7 @@ adherents <- adherents |>
     jewish_2009_pct_2 = str_replace(jewish_2009_pct_2, " \\.", ".")
   )
 
-left_half <- adherents |>
+left_half <- census_adherents |>
   select(state, christian_2000, christian_2000_pct, jewish_2009, jewish_2009_pct) |>
     mutate(
     christian_2000 = as.numeric(christian_2000),
@@ -196,7 +196,7 @@ left_half <- adherents |>
     jewish_2009_pct = as.numeric(jewish_2009_pct)
   )
 
-right_half <- adherents |>
+right_half <- census_adherents |>
   select(state2, christian_2000_2, christian_2000_pct_2, jewish_2009_2, jewish_2009_pct_2) |>
   rename(state = state2, 
          christian_2000 = christian_2000_2, 
@@ -210,11 +210,11 @@ right_half <- adherents |>
     jewish_2009_pct = as.numeric(jewish_2009_pct)
   )
 
-adherents_combined <- bind_rows(left_half, right_half) |>
+census_adherents_combined <- bind_rows(left_half, right_half) |>
   filter(!is.na(state))  # Remove any empty rows
 
 # View the result
-adherents_combined
+census_adherents_combined
 
 ```
 
@@ -225,7 +225,7 @@ We could stop here, but there are a bunch of periods in the state column and it'
 **Task** Run the codeblock below.
 
 ```{r}
-adherents_combined <- adherents_combined |>
+census_adherents_combined <- census_adherents_combined |>
   mutate(state = str_remove_all(state, "\\.") |> str_remove_all(" "))
 
 

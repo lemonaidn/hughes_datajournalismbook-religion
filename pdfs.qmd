@@ -16,38 +16,38 @@ library(janitor)
 
 ## Easy does it
 
-Tabula works best when tables in PDFs are clearly defined and have nicely-formatted information. Here's a perfect example: [active voters by county in Maryland](https://www.elections.maryland.gov/press_room/2022_stats/GG22/Eligible%20Active%20Voters%20by%20County%20-%20GG22.pdf).
+Tabula works best when tables in PDFs are clearly defined and have nicely-formatted information. Here's a perfect example: [denominational counts from the Association of Statisticians of American Religious Bodies](http://www.asarb.org/ASARB_Standard_Denominational_Adherents_2022.pdf).
 
 [Download and install Tabula](https://tabula.technology/). Tabula works much the same way as Open Refine does -- it works in the browser by spinning up a small webserver in your computer.
 
 When Tabula opens, you click browse to find the PDF on your computer somewhere, and then click import. After it imports, click autodetect tables. You'll see red boxes appear around what Tabula believes are the tables. You'll see it does a pretty good job at this.
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_voters.png"))
+knitr::include_graphics(rep("images/asarb1.png"))
 ```
 
 Now you can hit the green "Preview & Export Extracted Data" button on the top right. You should see something very like this:
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_voters2.png"))
+knitr::include_graphics(rep("images/asarb2.png"))
 ```
 
 You can now export that extracted table to a CSV file using the "Export" button. And then we can read it into R:
 
 ```{r}
-voters_by_county <- read_csv("data/tabula-Eligible Active Voters by County - GG22.csv")
+adherents <- read_csv("data/tabula-ASARB_Standard_Denominational_Adherents_2022.csv")
 
-voters_by_county
+adherents
 ```
 
 Boom - we're good to go.
 
 ## When it looks good, but needs a little fixing
 
-Here's a slightly more involved PDF, from [Maryland's 2020 annual report on unintentional drug and alcohol-related intoxication deaths](https://health.maryland.gov/vsa/Documents/Overdose/Annual_2020_Drug_Intox_Report.pdf). Specifically, we're looking at Table 7 on page 67 of the report which lists the number of fentanyl-related deaths by jurisdiction:
+Here's a slightly more involved PDF, from [a 2010 Census Bureau report on religious population by state](https://www2.census.gov/library/publications/2010/compendia/statab/130ed/tables/11s0077.pdf). Specifically, we're looking at Table 77 which lists the number and percentage of Christian and Jewish adherents by state:
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_fentanyl_deaths_1.png"))
+knitr::include_graphics(rep("images/census1.png"))
 ```
 
 Looks like a spreadsheet, right? Save that PDF file to your computer in a place where you'll remember it (like a Downloads folder).
@@ -55,27 +55,27 @@ Looks like a spreadsheet, right? Save that PDF file to your computer in a place 
 Now let's repeat the steps we did to import the PDF into Tabula, go to page 67. It should look like this:
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_fentanyl_deaths_2.png"))
+knitr::include_graphics(rep("images/census2.png"))
 ```
 
 Let's draw a box around what we want, but there's a catch: the headers aren't on a single line. If you draw your box around the whole table and preview, you'll see that there's a problem. To fix that, we'll need to limit our box to just the data. Using your cursor, click and drag a box across the table so it looks like this:
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_fentanyl_deaths_3.png"))
+knitr::include_graphics(rep("images/census3.png"))
 ```
 
 Now you can hit the green "Preview & Export Extracted Data" button on the top right. Using the "Stream" method, you should see something very like this:
 
 ```{r, echo=FALSE}
-knitr::include_graphics(rep("images/md_fentanyl_deaths_4.png"))
+knitr::include_graphics(rep("images/census4.png"))
 ```
 
 You can now export that extracted table to a CSV file using the "Export" button. And then we can read it into R and clean up the column names and some other things:
 
 ```{r}
-fentanyl_deaths <- read_csv("data/tabula-Annual_2020_Drug_Intox_Report.csv") |> clean_names()
+adherents <- read_csv("data/tabula-11s0077.csv") |> clean_names()
 
-fentanyl_deaths
+adherents
 ```
 
 ## Cleaning up the data in R
@@ -83,39 +83,111 @@ fentanyl_deaths
 The good news is that we have data we don't have to retype. The bad news is, we have a few things to fix, starting with the fact that the headers shouldn't be headers. Let's start by re-importing it and specifying that the first row doesn't have column headers:
 
 ```{r}
-fentanyl_deaths <- read_csv("data/tabula-Annual_2020_Drug_Intox_Report.csv", col_names = FALSE) |> clean_names()
+census_adherents <- read_csv("data/tabula-11s0077.csv", col_names = FALSE) |> clean_names()
 
-fentanyl_deaths
+census_adherents
 ```
 
 Ok, now we have all the data. But we need actual headers. Let's add those using `rename()`, keeping in mind that the new name comes *first*.
 
 ```{r}
-fentanyl_deaths <- read_csv("data/tabula-Annual_2020_Drug_Intox_Report.csv", col_names = FALSE) |> 
-  clean_names() |> 
-  rename(jurisdiction = x1, deaths_2011 = x2, deaths_2012 = x3, deaths_2013 = x4, deaths_2014 = x5, deaths_2015 = x6, deaths_2016 = x7, deaths_2017 = x8, 
-         deaths_2018 = x9, deaths_2019 = x10, deaths_2020 = x11, deaths_total = x12)
+census_adherents <- read_csv("data/tabula-11s0077.csv", col_names = FALSE) |> clean_names() |>
+  rename(state = x1, christian_2000 = x2, christian_2000_pct = x3, jewish_2009 = x4, jewish_2009_pct = x5, state2 = x6, christian_2000_2 = x7, christian_2000_pct_2 = x8,
+         jewish_2009_2 = x9, jewish_2009_pct_2 = x10)
 
-fentanyl_deaths
+census_adherents
 ```
 
-We could stop here, but there are a bunch of periods in the jurisdiction column and it's better to remove them - it will make filtering easier. Let's use `str_replace_all()` to do that:
+### Splitting and recombining
+
+We have two sets of columns here, one for each half of the page. Let's split them apart and then recombine them vertically. We'll do that using `select()` to grab the columns we want, `rename()` to make the column names the same and then `bind_rows()` to stack them vertically (we'll learn more about `bind_rows()` soon). We also make sure that both sets of columns are numeric.
 
 ```{r}
-fentanyl_deaths <- read_csv("data/tabula-Annual_2020_Drug_Intox_Report.csv", col_names = FALSE) |> 
-  clean_names() |> 
-  rename(jurisdiction = x1, deaths_2011 = x2, deaths_2012 = x3, deaths_2013 = x4, deaths_2014 = x5, deaths_2015 = x6, deaths_2016 = x7, deaths_2017 = x8, 
-         deaths_2018 = x9, deaths_2019 = x10, deaths_2020 = x11, deaths_total = x12) |> 
-  mutate(jurisdiction = str_squish(str_replace_all(jurisdiction,'\\.','')))
+left_half <- census_adherents |>
+  select(state, christian_2000, christian_2000_pct, jewish_2009, jewish_2009_pct) |>
+    mutate(
+    christian_2000 = as.numeric(christian_2000),
+    christian_2000_pct = as.numeric(christian_2000_pct),
+    jewish_2009 = as.numeric(jewish_2009),
+    jewish_2009_pct = as.numeric(jewish_2009_pct)
+  )
 
-fentanyl_deaths
+right_half <- census_adherents |>
+  select(state2, christian_2000_2, christian_2000_pct_2, jewish_2009_2, jewish_2009_pct_2) |>
+  rename(state = state2,
+         christian_2000 = christian_2000_2,
+         christian_2000_pct = christian_2000_pct_2,
+         jewish_2009 = jewish_2009_2,
+         jewish_2009_pct = jewish_2009_pct_2) |>
+  mutate(
+    christian_2000 = as.numeric(christian_2000),
+    christian_2000_pct = as.numeric(christian_2000_pct),
+    jewish_2009 = as.numeric(jewish_2009),
+    jewish_2009_pct = as.numeric(jewish_2009_pct)
+  )
+
+census_adherents_combined <- bind_rows(left_half, right_half) |>
+  filter(!is.na(state))  # Remove any empty rows
+
+# View the result
+census_adherents_combined
+```
+
+You'll notice that some of the values are showing up as `NA` - that's because they couldn't be converted to numbers. What's causing those NAs is that the values in them were "47 .4" and "2 .1" - those can't be successfully converted into numbers without removing the space. We'll use a function called `str_replace()` to remove those extra spaces in all of the data columns (the Jewish populations of North and South Dakota are so small that they don't get actual values here) before re-running the code from above.
+
+```{r}
+census_adherents <- census_adherents |>
+  mutate(
+    christian_2000_pct = str_replace(christian_2000_pct, " \\.", "."),
+    jewish_2009_pct = str_replace(jewish_2009_pct, " \\.", "."),
+    christian_2000_pct_2 = str_replace(christian_2000_pct_2, " \\.", "."),
+    jewish_2009_pct_2 = str_replace(jewish_2009_pct_2, " \\.", ".")
+  )
+
+left_half <- census_adherents |>
+  select(state, christian_2000, christian_2000_pct, jewish_2009, jewish_2009_pct) |>
+    mutate(
+    christian_2000 = as.numeric(christian_2000),
+    christian_2000_pct = as.numeric(christian_2000_pct),
+    jewish_2009 = as.numeric(jewish_2009),
+    jewish_2009_pct = as.numeric(jewish_2009_pct)
+  )
+
+right_half <- census_adherents |>
+  select(state2, christian_2000_2, christian_2000_pct_2, jewish_2009_2, jewish_2009_pct_2) |>
+  rename(state = state2,
+         christian_2000 = christian_2000_2,
+         christian_2000_pct = christian_2000_pct_2,
+         jewish_2009 = jewish_2009_2,
+         jewish_2009_pct = jewish_2009_pct_2) |>
+  mutate(
+    christian_2000 = as.numeric(christian_2000),
+    christian_2000_pct = as.numeric(christian_2000_pct),
+    jewish_2009 = as.numeric(jewish_2009),
+    jewish_2009_pct = as.numeric(jewish_2009_pct)
+  )
+
+census_adherents_combined <- bind_rows(left_half, right_half) |>
+  filter(!is.na(state))  # Remove any empty rows
+
+# View the result
+census_adherents_combined
+
+```
+
+We could stop here, but there are a bunch of periods in the state column and it's better to remove them - it will make filtering easier. Let's use `str_remove_all()` to do that, too. First we'll replace all periods and then all spaces:
+
+```{r}
+census_adherents_combined <- census_adherents_combined |>
+  mutate(state = str_remove_all(state, "\\.") |> str_remove_all(" "))
+
+census_adherents_combined
 ```
 
 There are a few important things to explain here:
 
 1.  Because we're replacing a literal period (.), we need to make sure that R knows that. Hence the '\\.' Why? Because '.' is a valid expression meaning "any character", so if we didn't have the backslashes the above code would make the entire column blank (try it!)
-2.  The `str_squish` function cleans up any excess spaces, at the beginning, middle or end of a character column. If we then use filter, we can do so with confidence.
-3.  I put "deaths\_" in front of each yearly column because R likes it when columns don't begin with a number. You can have a column called `2011`, but you literally have to use the backticks (`2011`) to refer to it in code.
+2.  We need to use str_remove_all() twice because we're removing two different things.
 
 All things considered, that was pretty easy. Many - most? - electronic PDFs aren't so easy to parse. Sometimes you'll need to open the exported CSV file and clean things up before importing into R. Other times you'll be able to do that cleaning in R itself.
 
