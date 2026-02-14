@@ -138,8 +138,7 @@ census_adherents
 
 We have two sets of columns here, one for each half of the page. Let's split them apart and then recombine them vertically. We'll do that using `select()` to grab the columns we want, `rename()` to make the column names the same and then `bind_rows()` to stack them vertically (we'll learn more about `bind_rows()` soon). We also make sure that both sets of columns are numeric.
 
-**Task** Run the codeblock below. Look carefully at the results and identify and problems or issues **Answer**  
-
+**Task** Run the codeblock below. Look carefully at the results and identify and problems or issues **Answer**
 
 ```{r}
 left_half <- census_adherents |>
@@ -176,7 +175,7 @@ census_adherents_combined
 
 What's causing those NAs is that the values in them were "47 .4" and "2 .1" - those can't be successfully converted into numbers without removing the space. We'll use a function called `str_replace()` to remove those extra spaces in all of the data columns (the Jewish populations of North and South Dakota are so small that they don't get actual values here) before re-running the code from above.
 
-**Task** Run the codeblock below. Look carefully at the results and identify and remaining problems or issues **Answer**  
+**Task** Run the codeblock below. Look carefully at the results and identify and remaining problems or issues **Answer**
 
 ```{r}
 census_adherents <- census_adherents |>
@@ -218,7 +217,7 @@ census_adherents_combined
 
 ```
 
-We could stop here, but there are a bunch of periods in the state column and it's better to remove them - it will make filtering easier. Let's use `str_remove_all()` to do that, too. First we'll replace all periods and then all spaces: 
+We could stop here, but there are a bunch of periods in the state column and it's better to remove them - it will make filtering easier. Let's use `str_remove_all()` to do that, too. First we'll replace all periods and then all spaces:
 
 ### Task 8: Replace the periods and spaces in state
 
