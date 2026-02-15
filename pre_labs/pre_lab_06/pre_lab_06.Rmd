@@ -1,7 +1,7 @@
 ---
 title: "pre_lab_06.Rmd"
 author: "derek willis"
-date: "2024-09-30"
+date: "2026-02-15"
 output: html_document
 ---
 
@@ -11,10 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Points to hit
 
-1.  Review of fourth lab questions/problems.
-2.  Demonstration of combining and merging
+1.  Review of fifth lab questions/problems.
+2.  Demonstration of combining, pivoting, and joining data
 
-## Chapter 17
+## Chapter 22
 
 ### Task 1: Load libraries and settings
 
@@ -27,163 +27,248 @@ library(tidyverse)
 library(lubridate)
 ```
 
-Often, as data journalists, we’re looking at data across time or at data stored in multiple tables. And to do that, we need to often need to merge that data together.
+Often, as data journalists, we're looking at data across time or at data stored in multiple tables. And to do that, we need to merge, reshape, and join data together.
 
-Depending on what we have, we may just need to stack data on top of each other to make new data. If we have 2019 data and 2018 data and we want that to be one file, we stack them. If we have a dataset of cows in counties and a dataset of populations in county, we’re going to join those two together on the county – the common element.
+We might have data in multiple files that needs to be combined. We might have data in a "wide" format that needs to be converted to "long" format for analysis. And we might have datasets that need to be joined together on common elements.
 
-Let’s explore.
+Let's explore these techniques using FEC contribution data from Maryland clergy and United Methodist church membership data.
 
-### Task 2: Load data
+### Task 2: Load clergy contribution data
 
-Let's say that we have Maryland county voter registration data from five different elections in five different files. They have the same record layout and the same number of counties (plus Baltimore City). We can combine them into a single dataframe.
+Let's say that we have Maryland clergy contribution data from five different election cycles in five different files. They have the same record layout. We can combine them into a single dataframe.
 
-**Task** Load the five CSV files. Do they have the same column structure? **Answer**
+**Task** Load the five clergy contribution CSV files. Do they have the same column structure? **Answer**
 
 ```{r}
-county_voters_2016 <- read_csv("data/county_voters_2016.csv")
-county_voters_2018 <- read_csv("data/county_voters_2018.csv")
-county_voters_2020 <- read_csv("data/county_voters_2020.csv")
-county_voters_2022 <- read_csv("data/county_voters_2022.csv")
-county_voters_2024 <- read_csv("data/county_voters_2024.csv")
+clergy_contribs_2016 <- read_csv("data/clergy_contribs_2016.csv")
+clergy_contribs_2018 <- read_csv("data/clergy_contribs_2018.csv")
+clergy_contribs_2020 <- read_csv("data/clergy_contribs_2020.csv")
+clergy_contribs_2022 <- read_csv("data/clergy_contribs_2022.csv")
+clergy_contribs_2024 <- read_csv("data/clergy_contribs_2024.csv")
 ```
 
-All of these datasets have the same number of columns, all with the same names, so if we want to merge them together to compare them over time, we need to stack them together. The verb here, in R, is bind_rows. You tell the function what you want to combine and it does it, assuming that you’ve got column names in common containing identically formatted data.
+All of these datasets have the same number of columns, all with the same names, so if we want to merge them together to compare them over time, we need to stack them together. The verb here, in R, is bind_rows. You tell the function what you want to combine and it does it, assuming that you've got column names in common containing identically formatted data.
 
-Since we have five dataframes, we’re going to need to pass them as a list, meaning they’ll be enclosed inside the list function.
+Since we have five dataframes, we're going to need to pass them as a list, meaning they'll be enclosed inside the list function.
 
 ### Task 3: Using bind_rows
 
-**Task** Combine the three files into a single data frame using the bind_rows() function, along with list(). Add a description of what this code does to your reference notebook.
+**Task** Combine the five files into a single data frame using the bind_rows() function, along with list(). Add a description of what this code does to your reference notebook.
 
 ```{r}
 # bind_rows with list
-county_voters_combined <- bind_rows(list(county_voters_2016, county_voters_2018, county_voters_2020, county_voters_2022, county_voters_2024))
-View(county_voters_combined)
+clergy_contribs_combined <- bind_rows(list(clergy_contribs_2016, clergy_contribs_2018, clergy_contribs_2020, clergy_contribs_2022, clergy_contribs_2024))
+View(clergy_contribs_combined)
 ```
 
-There are plenty of uses for bind_rows: any regularly updated data that comes in the same format like crime reports or award recipients or player game statistics. Or election results.
+There are plenty of uses for bind_rows: any regularly updated data that comes in the same format like crime reports, award recipients, or campaign contributions across multiple election cycles.
+
+## Reshaping data with pivot functions
+
+Now that we have all our contribution data in one place, let's explore how to reshape it. Sometimes data is easier to analyze or visualize in different formats. R provides two key functions for this: pivot_wider and pivot_longer.
+
+### Task 4: Calculate contribution totals by person and cycle
+
+Before we can reshape the data, we need to summarize it. Let's calculate the total amount each person contributed in each election cycle.
+
+**Task** Run the following code to create a summary of contributions by person and cycle. How many rows does this produce compared to the original combined data? **Answer**
+
+```{r}
+clergy_totals_by_cycle <- clergy_contribs_combined |>
+  group_by(contributor_name, two_year_transaction_period) |>
+  summarize(
+    total_amount = sum(contribution_receipt_amount),
+    num_contributions = n(),
+  )
+
+glimpse(clergy_totals_by_cycle)
+```
+
+### Task 5: Pivot to wide format
+
+Right now our data is in "long" format - each row represents one person's contributions in one election cycle. But what if we want to see all of someone's contributions across cycles in a single row? That's where pivot_wider comes in.
+
+Before we pivot, we need to select only the columns we want to reshape. We'll keep contributor_name, two_year_transaction_period, and total_amount. This ensures we get exactly one row per contributor in the wide format.
+
+**Task** Run the following code to pivot the data to wide format. Examine the result. How many columns do you now have for contribution amounts? **Answer**
+
+```{r}
+clergy_wide <- clergy_totals_by_cycle |>
+  select(contributor_name, two_year_transaction_period, total_amount) |>
+  pivot_wider(
+    names_from = two_year_transaction_period,
+    values_from = total_amount,
+    values_fill = 0
+  )
+
+glimpse(clergy_wide)
+View(clergy_wide)
+```
+
+Notice how each election cycle (2016, 2018, 2020, 2022, 2024) is now its own column. This format makes it easy to compare someone's giving patterns across cycles at a glance.
+
+### Task 6: Understanding wide format
+
+**Task** Using the clergy_wide data, find the contributors who gave in all five election cycles. How would you do this? Write and run code to find them. **Answer**
+
+```{r}
+# Your code here to find people who gave in all 5 cycles
+
+
+```
+
+### Task 7: Pivot back to long format
+
+Sometimes you need to convert data from wide back to long format. This is common when preparing data for visualization with ggplot2, which generally prefers long format data.
+
+**Task** Run the following code to convert the wide data back to long format. Compare the result to clergy_totals_by_cycle. Are they the same? **Answer**
+
+```{r}
+clergy_long <- clergy_wide |>
+  pivot_longer(
+    cols = c(`2016`, `2018`, `2020`, `2022`, `2024`),
+    names_to = "election_cycle",
+    values_to = "total_contributions"
+  )
+
+glimpse(clergy_long)
+```
+Notice that pivot_longer takes:
+- cols: which columns to pivot (the cycle years)
+- names_to: what to call the new column that will hold the old column names
+- values_to: what to call the new column that will hold the values
 
 ## Joining data
 
-More complicated is when you have two separate tables that are connected by a common element or elements. But there’s a verb for that, too: join.
+More complicated is when you have two separate tables that are connected by a common element or elements. But there's a verb for that, too: join.
 
-Let’s start by reading in some Maryland 2020 county population data:
+Let's start by reading in some United Methodist church clergy data. We have two files: one with basic information about clergy, and another with more detailed church assignment data. Clergy can be assigned to multiple churches over their career, but they are the same person.
 
-### Task 4: Loading population data
+### Task 8: Loading United Methodist data
 
-**Task** Load the Maryland 2020 county population data **Answer**
-
-```{r}
-maryland_population <- read_csv('data/maryland_population_2020.csv')
-```
-
-One of the columns we have is called county, which is what we have in our county_voters_2020 dataframe.
-
-To put the Maryland population data and voter registration data together, we need to use something called a join. There are different kinds of joins. It’s better if you think of two tables sitting next to each other. A left_join takes all the records from the left table and only the records that match in the right one. A right_join does the same thing. An inner_join takes only the records where they are equal. There’s one other join – a full_join which returns all rows of both, regardless of if there’s a match – but I’ve never once had a use for a full join.
-
-In the best-case scenario, the two tables we want to join share a common column. In this case, both of our tables have a column called county that has the same characteristics: values in both look identical, including how they distinguish Baltimore City from Baltimore County. This is important, because joins work on exact matches.
-
-We can do this join multiple ways and get a similar result. We can put the population file on the left and the registration data on the right and use a left join to get them all together. And we use join_by() to join by the correct columns. I’m going to count the rows at the end. The reason I’m doing this is important: Rule 1 in joining data is having an idea of what you are expecting to get. So with a left join with population on the left, I have 24 rows, so I expect to get 24 rows when I’m done.
-
-### Task 5: Join population and voter data
-
-**Task** Run the following code to join Maryland population data and the 2020 voter registration data together using the common column county as the key. How many rows are there now? How many *should* there be? **Answer**
+**Task** Load the two United Methodist data files and examine their structure. What columns do they have in common? What columns are unique to umdata_people_all? **Answer**
 
 ```{r}
-# with nrow included to show row total
-maryland_population |> left_join(county_voters_2020, join_by(COUNTY)) |> nrow()
+umdata_people <- read_csv('data/umdata_people.csv')
+umdata_people_all <- read_csv('data/umdata_people_all.csv')
+
+glimpse(umdata_people)
+glimpse(umdata_people_all)
 ```
 
-Remove the nrow and run it again for yourself. By default, dplyr will do a “natural” join, where it’ll match all the matching columns in both tables. So if we take out the by, it’ll use all the common columns between the tables. That may not be right in every instance but let’s try it. If it works, we should get 24 rows.
+You should notice that umdata_people_all has two additional columns: ConferenceId and ConferenceName. These contain the detailed church assignment information. When we join these datasets, we'll select only these unique columns from umdata_people_all to avoid creating duplicate columns with .x and .y suffixes.
 
-### Task 6: Looking at Joined Data
+### Task 9: Understanding the relationship between datasets
 
-**Task** Examine the combined data
+Before joining data, it's crucial to understand how the tables relate to each other.
+
+**Task** Run the following code to compare the two datasets. How many unique people (GCFAId) are in each dataset? Why might umdata_people_all have so many more rows? **Answer**
 
 ```{r}
-# without nrow
-maryland_population |> left_join(county_voters_2020, join_by(COUNTY))
+# Count unique people in each dataset
+umdata_people |>
+  summarize(unique_people = n_distinct(GCFAId))
+
+umdata_people_all |>
+  summarize(unique_people = n_distinct(GCFAId))
+
+# Count total rows
+nrow(umdata_people)
+nrow(umdata_people_all)
 ```
 
-When the join column is obvious - it's the same name in both dataframes - R will make that connection automatically and tell you. Below we're assigning the result of the previous code to a new dataframe, but we've removed the explicit join_by() function. R still tells us what column(s) it used for the join.
+The umdata_people_all dataset has many more rows than unique people because each person can have multiple church assignments over time. This is called a one-to-many relationship.
 
-### Task 7: Assign Joined Data to New Dataframe
+### Task 10: Inner join
 
-**Task** Create a new dataframe with population and voter data joined together. What does the output message below say about the join? **Answer**
+An inner_join keeps only the records that exist in BOTH datasets. Let's find the people who appear in both datasets.
+
+Since both datasets share most columns, we'll select only the unique information from umdata_people_all (ConferenceId and ConferenceName) to avoid duplicate columns with .x and .y suffixes.
+
+**Task** Run the following code to perform an inner join. How many rows does the result have? Why? **Answer**
 
 ```{r}
-maryland_population_with_voters <- maryland_population |> left_join(county_voters_2020)
+people_matched <- umdata_people |>
+  inner_join(
+    umdata_people_all |> select(GCFAId, ConferenceId, ConferenceName),
+    join_by(GCFAId)
+  )
+
+nrow(people_matched)
+glimpse(people_matched)
 ```
 
-Now, with our joined data, we can answer questions in a more useful way. But joins can do even more than just bring data together; they can include additional data to enable you to ask more sophisticated questions. Right now we have registered voters and total population. But we can do more.
+### Task 11: Left join
 
-Let’s try adding more Maryland demographic data to the mix. Using a file describing the 18-and-over population (from which eligible voters come) from the state’s data catalog, we can read it into R:
+A left_join keeps ALL records from the left (first) dataset and only matching records from the right (second) dataset.
 
-### Task 8: Add the Demographic Data
+Since both datasets share most of the same columns, we'll select only the unique columns from umdata_people_all (ConferenceId and ConferenceName) plus the join key before joining. This gives us a clean result without duplicate columns.
 
-**Task** Load the Maryland demographic data
+**Task** Run the following code to perform a left join. How does the row count compare to the inner join? **Answer**
 
 ```{r}
-maryland_demographics <- read_csv('data/maryland_demographics.csv')
+people_with_conferences <- umdata_people |>
+  left_join(
+    umdata_people_all |> select(GCFAId, ConferenceId, ConferenceName),
+    join_by(GCFAId)
+  )
+
+nrow(people_with_conferences)
+glimpse(people_with_conferences)
 ```
 
-Again, we can use a left_join to make our demographic data available. This time we’ll need to specify the two fields to join because they do not have identical names. We’ll use COUNTY from our population data and NAME from the demographic data, and the order matters - the first column is from the dataframe you name first.
+### Task 12: Understanding one-to-many joins
 
-### Task 9: Join demographic data to combined voting/population data
+When you join a table with unique records to a table with multiple records per key, the result will have multiple rows for each match.
 
-**Task** Join the demographic data to the our combined voting/population data. To do this, we need to specify the join columns since the names aren't the same.
+**Task** Pick a person from umdata_people and examine their records in the joined data. How many conference assignments do they have? **Answer**
 
 ```{r}
-maryland_population_with_voters_and_demographics <- maryland_population_with_voters |> left_join(maryland_demographics, join_by(COUNTY==NAME))
+# Example: look at the first person
+sample_person <- umdata_people |> slice(1)
+sample_gcfaid <- sample_person$GCFAId
+
+people_with_conferences |>
+  filter(GCFAId == sample_gcfaid) |>
+  select(FirstName, LastName, GCFAId, Conferences, ConferenceName, AccountStatus)
 ```
 
-Now we’ve got population data and demographic data by county. That means we can draw from both datasets in asking our questions. For example, we could see the counties with the highest 18+ Black population as a percentage of all population 18 and over and also the percentage of Democrats in that county.
+### Task 13: Anti join
 
-We can get this by using mutate and arrange:
+An anti_join keeps records from the left dataset that DON'T have matches in the right dataset. This is useful for finding missing data.
 
-### Task 10: Asking Demographic Questions
-
-**Task** Using mutate, let's find the county with the highest 18+ Black population as a percentage of all population 18 and over and also the percentage of Democrats in that county. Put your answers below. **Answer**
+**Task** Run the following code to find people in umdata_people who don't appear in umdata_people_all. Are there any? Why or why not? **Answer**
 
 ```{r}
-maryland_population_with_voters_and_demographics |>
-  mutate(pct_black_18_plus = (pop_black/pop_18_over)*100, pct_dems = (DEM/TOTAL)*100) |> 
-  arrange(desc(pct_black_18_plus)) |> 
-  select(COUNTY, pct_black_18_plus, pct_dems)
+people_not_in_all <- umdata_people |>
+  anti_join(umdata_people_all, join_by(GCFAId))
+
+nrow(people_not_in_all)
 ```
 
-If you know Maryland political demographics, this result isn’t too surprising, but Somerset County - the state’s 2nd smallest in terms of population - stands out for its Black population, which is a greater percentage than Baltimore County and Montgomery County.
+### Task 14: Analyzing conference assignments
 
-Let’s change that to look at Asian population:
+Now that we understand joins, let's use them to answer questions about the data.
 
-### Task 11: Asking Demographic Questions
-
-**Task** Now let's find the county with the highest 18+ Asian population as a percentage of all population 18 and over and also the percentage of Democrats in that county. How do these results compare to the previous task? Put your answers below. **Answer**
+**Task** Using the joined data, find out how many different conference assignments people have. Which person has the most conference assignments? **Answer**
 
 ```{r}
-maryland_population_with_voters_and_demographics |>
-  mutate(pct_asian_18_plus = (pop_asian/pop_18_over)*100, pct_dems = (DEM/TOTAL)*100) |> 
-  arrange(desc(pct_asian_18_plus)) |> 
-  select(COUNTY, pct_asian_18_plus, pct_dems)
+conference_counts <- people_with_conferences |>
+  group_by(GCFAId, FirstName, LastName) |>
+  summarize(
+    num_conferences = n(),
+    conferences_list = paste(unique(ConferenceName), collapse = "; "),
+    .groups = 'drop'
+  ) |>
+  arrange(desc(num_conferences))
+
+head(conference_counts, 10)
 ```
 
-### Task 12: Fixing Join Problems
+### Task 15: Combining what we've learned
 
-Sometimes joins look like they should work but don't. Often this is due to the two columns you're joining on having different data types: joining a <chr> column to a <dbl> column, for example. Let's walk through an example of that using some demographic data by zip code.
+**Task** Using both the clergy contribution data and the UM data, think about what other questions you could answer. Write down at least two questions you could explore. **Answer**
 
-**Task** Run the following code to load the Zip Code Tabulation Area data for Maryland. What's the datatype of the ZCTA5N? column? **Answer**
+1.
 
-```{r}
-maryland_zcta <- read_csv('data/maryland_zcta.csv')
-glimpse(maryland_zcta)
-```
-
-The column we're interested in, ZCTA5N, is a <dbl> column - it's a number. We want it to be a <chr> column - text - so we can use it in joins.
-
-**Task** Run the following code to change the datatype of ZCTA5N from numeric to character. What's the datatype of ZCTA5N now? **Answer**
-
-```{r}
-maryland_zcta <- maryland_zcta |> mutate(across(ZCTA5N, as.character))
-```
-
-Now we can join this dataframe to other zip code data where the zip code column is text, not numbers.
+2.
