@@ -1,0 +1,274 @@
+---
+title: "Reverse Engineering: Religious Diversity in the United States"
+author: "Student Name"
+date: "2026-02-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+## Introduction
+
+In this reverse engineering assignment, you will analyze Dale E. Jones's report "Religious Diversity in the United States" and reproduce key quantitative findings using data from the 2020 U.S. Religion Census.
+
+**Your task:**
+
+1. Read the report carefully (ReligiousDiversity-Jones1.txt in the parent religion-data folder)
+2. Identify key facts and statistics that were produced through data analysis
+3. Write well-commented, well-structured R code to reproduce those findings
+4. Focus on replicable quantitative sentences (not the maps)
+
+**Important:** This is NOT a step-by-step walkthrough. You are expected to independently:
+- Identify which claims in the report can be verified with data
+- Determine what data you need and how to obtain it
+- Clean and analyze the data appropriately
+- Implement Simpson's Diversity Index calculation
+- Reproduce the findings with your own code
+
+## Understanding Simpson's Diversity Index
+
+Before analyzing the data, make sure you understand the diversity measure used in the report:
+
+**Formula:** D = 1 - ∑(n/N)²
+
+Where:
+- N = total number of instances (e.g., total adherents in a county)
+- n = instances in each category (e.g., Catholic adherents in that county)
+- For each category: divide n by N, square the result, sum all squared results
+- Subtract this sum from 1 to get the diversity index
+- Result ranges from 0 (no diversity) to 1 (maximum diversity)
+
+## Load Libraries
+
+```{r}
+# Load the tidyverse and any other libraries you need
+
+
+```
+
+## Load Data
+
+```{r}
+# Load the 2020 U.S. Religion Census data
+# You will need to download this from usreligioncensus.org
+# and determine which files/tables to use
+
+
+```
+
+## Implement Simpson's Diversity Index
+
+```{r}
+# Write a function to calculate Simpson's Diversity Index
+# This function should:
+# 1. Take a dataframe with categories and their counts/proportions
+# 2. Calculate (n/N)² for each category
+# 3. Sum those squared values
+# 4. Subtract from 1 to get the diversity index
+
+
+```
+
+## Questions to Guide Your Analysis
+
+As you read the report, consider these questions:
+
+1. **What are the main quantitative claims?** Look for specific percentages, counts, rankings, and diversity index values.
+
+2. **What data sources were used?** The report uses the 2020 U.S. Religion Census with different categorization schemes and geographic aggregations.
+
+3. **What is the methodology?** The report applies Simpson's Diversity Index to different religious categorizations (372 bodies, 215 bodies, 6 world religions, 43 families, 13 traditions, 13 traditions + unaffiliated).
+
+4. **What geographic levels are analyzed?** Counties, metropolitan areas (1 million+ population), and states.
+
+5. **What specific claims can you verify?** Focus on:
+   - Counts of religious bodies in specific areas (e.g., "Los Angeles County has 171 religious bodies")
+   - Percentage claims (e.g., "Catholics are 47% of Pennsylvania's religious adherents")
+   - Rankings (e.g., Table 1's most/least diverse metros, Table 2's most/least diverse states)
+   - Specific diversity index values or comparisons
+
+## Your Analysis
+
+Write your code below to reproduce key findings from the report. For each finding:
+- State the claim from the report
+- Show your code with clear comments
+- Present your results
+- Compare to what the report stated
+
+### Finding 1: Religious Body Counts
+
+Verify claims about the number of different religious bodies in specific areas.
+
+**Claims to verify:**
+- Los Angeles County has 171 religious bodies
+- New York-Newark-Jersey City metro has 198 religious bodies
+- Pennsylvania has 245 religious bodies
+
+```{r}
+# Your code here
+
+
+```
+
+### Finding 2: Religious Composition of Specific Areas
+
+Verify percentage claims about religious adherents in specific areas.
+
+**Claims to verify:**
+- Catholics are 47% of Pennsylvania's religious adherents
+- Catholics are 61% of the New York metro area's adherents
+- Catholics are 62% of all adherents in Los Angeles County
+- Two-thirds of Oregon, New Hampshire, and Maine population is unaffiliated
+
+```{r}
+# Your code here
+
+
+```
+
+### Finding 3: Metropolitan Area Diversity Rankings (Table 1)
+
+Reproduce the rankings from Table 1, which shows the most and least religiously diverse metropolitan areas with 1 million or more population.
+
+**Most diverse (rank 1-5):**
+1. Memphis, TN-MS-AR
+2. Charlotte-Concord-Gastonia, NC-SC
+3. Richmond, VA
+4. Milwaukee-Waukesha, WI
+5. Cleveland-Elyria, OH
+
+**Least diverse (rank 52-56):**
+52. Tucson, AZ
+53. Sacramento-Roseville-Folsom, CA
+54. San Francisco-Oakland-Berkeley, CA
+55. Portland-Vancouver-Hillsboro, OR-WA
+56. Denver-Aurora-Lakewood, CO
+
+```{r}
+# Your code here
+# You'll need to:
+# 1. Identify the 56 metropolitan areas with 1 million+ population in 2020
+# 2. Calculate Simpson's Diversity Index using 13 traditions + unaffiliated
+# 3. Rank them and compare to the table
+
+
+```
+
+### Finding 4: Religious Composition of Specific Metropolitan Areas
+
+Verify the composition claims for specific metros.
+
+**Claims to verify:**
+- Denver: two-thirds unaffiliated, nearly half the remaining is Catholic
+- Salt Lake City: half claimed by Latter-day Saints, one-third unaffiliated
+- Memphis: one-third unaffiliated, one-third Evangelical Protestant, one-sixth Black Protestant, Mainline Protestants and Catholics each ~5%
+
+```{r}
+# Your code here
+
+
+```
+
+### Finding 5: State Diversity Rankings (Table 2)
+
+Reproduce the rankings from Table 2, which shows the most and least religiously diverse states.
+
+**Most diverse (rank 1-5):**
+1. Louisiana (37% unaffiliated, 27% Catholic, 25% Evangelical Protestant)
+2. South Carolina (45% unaffiliated, 20% Evangelical Protestant, 18% Mainline Protestant)
+3. Texas (45% unaffiliated, 24% Evangelical Protestant, 20% Catholic)
+4. North Dakota (45% unaffiliated, 21% Catholic, 21% Mainline Protestant)
+5. Idaho (47% unaffiliated, 25% Latter-day Saints, 12% Evangelical Protestant)
+
+**Least diverse (rank 46-50):**
+46. Alaska (65% unaffiliated)
+47. Oregon (67% unaffiliated)
+48. Utah (65% Latter-day Saints)
+49. Maine (69% unaffiliated)
+50. New Hampshire (73% unaffiliated)
+
+```{r}
+# Your code here
+
+
+```
+
+### Finding 6: District of Columbia Composition
+
+Verify the claim that DC would be the most diverse if it were a state.
+
+**Claims to verify:**
+- DC: 44% unaffiliated
+- Evangelical Protestants: 15%
+- Catholics: 12%
+- Black Protestants: 10%
+- Mainline Protestants: 10%
+
+```{r}
+# Your code here
+
+
+```
+
+### Finding 7: Metropolitan Area Diversity Categories
+
+Verify the claim about how many large metros fall into different diversity categories.
+
+**Claims to verify:**
+- Over one-third (20 of 56) of the nation's largest metro areas rank with the top 20% of counties
+- Only 2 metros would rank with moderate diversity
+- None would be categorized with the least diverse counties
+
+```{r}
+# Your code here
+# You'll need to compare metro diversity indices to county diversity indices
+
+
+```
+
+### Finding 8: World Religions Diversity Comparison
+
+Verify the claim about maximum diversity when using only world religions.
+
+**Claims to verify:**
+- Highest diversity based on world religions is only 0.51
+- This compares to 0.62 needed to reach "moderate diversity" on the all religious bodies scale
+
+```{r}
+# Your code here
+# You'll need to calculate diversity using 6 world religions and compare to the scale
+
+
+```
+
+## Additional Findings
+
+Identify and reproduce other quantitative claims from the report.
+
+```{r}
+# Your analysis here
+
+
+```
+
+## Summary of Results
+
+Summarize what you were able to reproduce and any discrepancies you found.
+
+## Challenges and Limitations
+
+Describe any challenges you encountered:
+- What data was difficult to obtain or prepare?
+- What assumptions did you have to make?
+- What findings could not be reproduced and why?
+- How did you handle metropolitan area definitions?
+- How did you calculate the unaffiliated population?
+
+## Data Sources
+
+- 2020 U.S. Religion Census: https://www.usreligioncensus.org/
+- Population data: U.S. Census Bureau
+- Metropolitan area definitions: Office of Management and Budget (OMB)
