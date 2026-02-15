@@ -1,7 +1,7 @@
 ---
 title: "lab_06"
 author: "Derek Willis"
-date: "2025-01-16"
+date: "2026-02-15"
 output: html_document
 ---
 
@@ -21,54 +21,93 @@ options(scipen=999)
 
 ## Getting Started
 
-This week we'll be combining and joining data to make it more useful and to ask some questions about it. We'll use some more 911 overdose call data to do this. The first thing we want to do is to combine multiple counties' data into a single dataframe so that we can ask some questions. First, let's combine data from Cecil, Carroll and Allegany counties into a new dataframe.
+This week we'll be combining and joining data to make it more useful and to ask some questions about it. We'll use clergy contribution data from multiple election cycles and United Methodist church membership data to do this.
 
-*Before* you combine them you'll need to clean up some of the column names to make the data easier to work with - make sure you have loaded the library to do that. You also need to make sure that each column has the same name and datatype (you can check the datatypes using `glimpse`). If any of them does not, you need to fix that.
+## Load Data
 
-```{r}
-# load and combine the call data from those three counties
-```
-
-Then we'll join some demographic data with Baltimore City 911 calls and ask some questions of that. For that, you'll need to load the Baltimore City 911 data and the ZCTA demographic data from the data folder, and join them based on the zip code. Remember, the zip codes in both dataframes must be the same datatype (and should be characters). You should start with your Baltimore City 911 dataframe in creating your join.
+First, let's load all the data we'll need for this lab.
 
 ```{r}
-# load and join the Baltimore-related data
+# Load the five clergy contribution files for different election cycles
+
+
+
+
+# Load the two United Methodist data files
+
+
 ```
 
 ## Answer questions
 
-Q1. Let's start with our data from Allegany, Cecil and Carroll counties. Write code to generate a dataframe that shows the total number of calls for each county. What's the order of counties from most calls to least?
+Q1. You want to understand how much clergy members have contributed across all five election cycles combined. Load and combine the five clergy contribution files into a single dataframe. Then calculate the total amount contributed by each person across all cycles, and identify the top 10 contributors by total amount. Who are they, and how much did each contribute in total? What do you notice about the top contributors?
 
 A1.
 
 ```{r}
 ```
 
-Q2. In your combined dataframe that you used in A1, add a column for the month of each call, then write code to show the total number of calls per county and month. Are there any outliers or noteworthy results? Describe the general pattern of the results.
-
-Then calculate the most calls per county and location. Which location had the most calls - where and what is that location?
+Q2. Now you're interested in understanding giving patterns by election cycle. Using your combined dataframe from Q1, calculate the total dollar amount contributed in each election cycle, and the total number of contributions in each cycle. Which cycle had the most money contributed? Which had the most individual contributions? What's the difference between those two results, and what might explain it?
 
 A2.
 
 ```{r}
 ```
 
-Q3. Let's turn to the Baltimore City data. You're interested in exploring calls in zip codes with a high percentage of children under 18. Write code to isolate calls in zip codes where the percentage of under 18 population is at least 75% and then show the zip code and population and how many calls occurred in each of those zip codes.
-
-Where are those zip codes in the city?
-
-Add a column to your code that calculates the number of calls per 1,000 people for those zip codes. To calculate a per capita rate, you might find this short guide handy: [https://observablehq.com/\@palewire/per-capita-calculator](https://observablehq.com/@palewire/per-capita-calculator){.uri}.
-
-Which zip code has the highest rate of calls per 1,000 people? Find the neighborhoods in that zip code that are listed in the data - you can use group_by or distinct to do this. What are some of those neighborhoods, and what else can you tell me about the population there?
+Q3. You're interested in understanding which contributors gave to the same committees across multiple election cycles. First, create a dataframe of contributions from 2020 only, with contributor name and committee name. Then create another dataframe of contributions from 2024 only, with the same fields. Join these two dataframes to find contributors who gave to the same committee in both 2020 and 2024. How many contributor-committee combinations appear in both cycles? Who are some of the contributors who stayed loyal to the same committees?
 
 A3.
 
 ```{r}
 ```
 
-Q4. Choose your own adventure: I want you to come up with a question you could ask of the Baltimore City data that combines both the calls and the demographic information. You must use both demographics and the overdose call data in your work.
+Q4. Some clergy members have been more consistent donors across election cycles. Using the combined contribution data, create a dataframe that shows each contributor and how many different election cycles they contributed in (someone who gave in 2016, 2018, and 2024 would have 3 cycles). Who contributed in all five election cycles? How many people contributed in only one cycle vs. multiple cycles? What patterns do you notice?
 
-A4:
+A4.
+
+```{r}
+```
+
+Q5. You're interested in whether there are geographic patterns in clergy giving. Using the combined contribution data, calculate the total amount contributed by clergy in each city (`contributor_city`). What are the top 5 cities by total contribution amount? Then calculate the number of unique contributors in each of those top 5 cities. Are the cities with the most money also the cities with the most contributors, or are there differences?
+
+A5.
+
+```{r}
+```
+
+Q6. Use `pivot_wider` to create a summary showing each contributor and their total contributions in the 2020 and 2024 election cycles only (create a dataframe with columns for contributor_name, total_2020, and total_2024). Then calculate a new column showing the change in contribution amount from 2020 to 2024. Which contributors increased their giving the most? Which decreased the most? What percentage of contributors increased vs. decreased?
+
+A6.
+
+```{r}
+```
+
+Q7. Now let's work with the United Methodist data. Join the `umdata_people` and `umdata_people_all` datasets using `GCFAId` as the key. Before joining, select only the unique columns from `umdata_people_all` (ConferenceId and ConferenceName) to avoid duplicate columns. After joining, filter for only clergy (not laity) and then identify the top 5 conferences by number of clergy members. Which conferences have the most clergy?
+
+A7.
+
+```{r}
+```
+
+Q8. Using the joined United Methodist data from Q7, compare the number of Active clergy vs. Deceased clergy in the dataset. Which conference has the highest number of Active clergy? What about Deceased clergy? Calculate the ratio of Active to Deceased clergy for the top 5 conferences by total clergy count. What patterns do you notice?
+
+A8.
+
+```{r}
+```
+
+Q9. You want to explore whether there's any overlap between clergy who made political contributions and clergy in the United Methodist database. Using the combined contribution data and the UM data, identify any contributors whose names (first and last name) match clergy in the `umdata_people` file. You'll need to join on both first and last names. How many matches do you find? What challenges does this kind of name-based matching present?
+
+Hint: You may need to use `inner_join` with multiple conditions, or create a combined name field in both datasets to join on.
+
+A9.
+
+```{r}
+```
+
+Q10. Choose your own adventure: Come up with a question that requires you to use at least one join and one aggregation (sum, mean, count, etc.) using either the clergy contribution data, the UM data, or both. Write the question, then write the code to answer it, and provide an answer.
+
+A10: **Your question here**
 
 ```{r}
 ```
