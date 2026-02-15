@@ -1,0 +1,344 @@
+---
+title: "Reverse Engineering: Money and Leadership in the PCA"
+author: "Your Name"
+date: "2026-02-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This reverse engineering project is based on Ryan Burge's analysis ["Money and Leadership in the Presbyterian Church in America"](https://www.graphsaboutreligion.com/p/money-and-leadership-in-the-presbyterian) published on January 1, 2026.
+
+The analysis examines over 1,700 PCA churches to answer practical questions: How many leaders should a church have? What's normal for per capita giving? How do finances vary by church size?
+
+## Load Libraries
+
+```{r}
+library(tidyverse)
+library(readxl)
+options(scipen = 999)
+```
+
+## Load Data
+
+Read the PCA statistics Excel file. Note: Skip the first 2 rows to get proper column headers.
+
+```{r}
+pca <- read_excel("pca_stats.xlsx", skip = 2)
+
+# Examine the structure
+glimpse(pca)
+```
+
+## Finding 1: Leadership Patterns by Church Size
+
+**Claim from article**: "In the very smallest churches, you'll usually find about three people serving in formal leadership roles. That number rises to around four deacons and elders in churches with 26–50 members... A church with 100–250 members averages about ten leaders, and among the largest PCA churches, that number climbs to roughly 37."
+
+Calculate the average number of total leaders (ruling elders + deacons) by church size category.
+
+```{r}
+# Create size categories and calculate total leaders
+
+
+# Group by size category and calculate means
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Does the data support the article's claims about 3 leaders in smallest churches, 4 in 26-50 member churches, 10 in 100-250, and 37 in largest churches?
+
+## Finding 2: Consistent Elder-to-Deacon Ratio
+
+**Claim from article**: "For every one deacon, there's one elder. It's a near-perfect 50/50 split that barely wobbles across the entire dataset."
+
+Calculate the average number of elders and deacons separately by church size to verify this ratio.
+
+```{r}
+# Calculate mean elders and mean deacons by size category
+
+
+# Calculate the ratio
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Is the ratio consistently around 1:1 across all church sizes?
+
+## Finding 3: Leader-to-Member Ratio Overall
+
+**Claim from article**: "Across the entire sample, the average church has one leader for every twenty members."
+
+Calculate the members-per-leader ratio for all churches.
+
+```{r}
+# Calculate total leaders (elders + deacons)
+
+
+# Calculate members per leader ratio
+
+
+# Calculate mean ratio
+
+```
+
+**Your interpretation**:
+
+Is the overall ratio close to 20 members per leader?
+
+## Finding 4: Smallest Churches Have Tighter Ratios
+
+**Claim from article**: "In a really small church, there's often one elder or deacon for every seven members."
+
+Calculate the leader-to-member ratio for very small churches (25 members or fewer).
+
+```{r}
+# Filter to smallest churches
+
+
+# Calculate members per leader ratio
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Do the smallest churches really have about 1 leader per 7 members?
+
+## Finding 5: Ratio Increases with Size
+
+**Claim from article**: "Among churches with 50–100 members, there's roughly one leader for every sixteen people... In the largest PCA churches, there's about one leader for every thirty-three members."
+
+Calculate how the members-per-leader ratio changes by church size.
+
+```{r}
+# Calculate members per leader ratio by size category
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Does the ratio roughly double from small to medium churches, and double again to large churches?
+
+## Finding 6: Per Capita Giving Distribution
+
+**Claim from article**: "About 7% have a per-capita giving rate below $1,000 per person... about 5% of PCA congregations" have giving above $7,000. "The most common range is $2,000 to $4,000 per member, which includes nearly half of all congregations." The median is "$3,314."
+
+Calculate the distribution of per capita giving.
+
+```{r}
+# Filter to valid per capita giving values
+
+
+# Calculate percentage below $1,000
+
+
+# Calculate percentage above $7,000
+
+
+# Calculate percentage between $2,000 and $4,000
+
+
+# Calculate median
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Do the percentages match the article's claims? Is the median close to $3,314?
+
+## Finding 7: Per Capita Giving by Church Size
+
+**Claim from article**: "Per-capita giving is about $3,500 per person in smaller congregations and rises only to around $3,850 among those at the upper end—a bump of roughly 10%." The largest churches have "about $4,343 per person."
+
+Calculate mean per capita giving by church size category.
+
+```{r}
+# Calculate mean per capita giving by size
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Are the dollar amounts close to what the article reports? Is there only about a 10% increase from small to medium churches?
+
+## Finding 8: Expense-to-Income Ratio Overall
+
+**Claim from article**: "Across the average PCA church, about 86% of all income goes out through current expenses."
+
+Calculate the ratio of current expenses to total church income.
+
+```{r}
+# Filter to churches with valid income and expense data
+
+
+# Calculate expense ratio
+
+
+# Calculate mean expense ratio
+
+```
+
+**Your interpretation**:
+
+Is the mean expense ratio around 86% (or 0.86)?
+
+## Finding 9: Small Churches Overspend
+
+**Claim from article**: "Small churches are spending more than they're taking in. In fact, their expenses exceed their income by nearly 30%."
+
+Calculate expense ratios for the smallest churches.
+
+```{r}
+# Filter to smallest churches (under 25 members)
+
+
+# Calculate expense ratio
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Do the smallest churches have expense ratios above 100%? By how much?
+
+## Finding 10: Large Churches Save Significantly
+
+**Claim from article**: "Among churches with at least 500 members, every three dollars that comes in translates to just two dollars going out for expenses. That's a savings rate north of 30%."
+
+Calculate expense ratios for the largest churches.
+
+```{r}
+# Filter to largest churches (500+ members)
+
+
+# Calculate expense ratio
+
+
+# Calculate savings rate (1 - expense ratio)
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Is the expense ratio around 0.67 (two-thirds)? Is the savings rate above 30%?
+
+## Finding 11: Expense Ratio by Church Size
+
+**Claim from article**: "Congregations with 26 to 250 members spend between 85% and 88% of their income each year."
+
+Calculate mean expense ratios for different size categories.
+
+```{r}
+# Calculate mean expense ratio by size category
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Do medium-sized churches (26-250 members) have expense ratios in the 85-88% range?
+
+## Finding 12: Building Fund Prevalence
+
+**Claim from article**: "Exactly one-third of all PCA churches had a line item for building funds."
+
+Calculate what percentage of churches have building fund offerings.
+
+```{r}
+# Count churches with building funds
+
+
+# Calculate percentage
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Is the percentage close to 33%?
+
+## Finding 13: Growth Status and Building Funds
+
+**Claim from article**: "About 34% of churches that reported more subtractions than additions in the prior year still contributed to a building fund. Among those that grew in the past year, the figure was 41%."
+
+Calculate building fund percentages by growth category.
+
+```{r}
+# Calculate net change (additions - losses)
+
+
+# Create growth categories
+
+
+# Calculate building fund percentage by growth category
+
+
+# Display results
+
+```
+
+**Your interpretation**:
+
+Do declining churches have building funds at about 34%, and growing churches at about 41%?
+
+## Finding 14: Income Formula
+
+**Claim from article**: "Total Church Income = (3,519.40 × Total Members) - 42,716. So, for example, a church with 100 members would have an expected income of about $309,000."
+
+Build a linear model predicting total church income from total membership.
+
+```{r}
+# Filter to valid data (remove outliers above 99th percentile)
+
+
+# Build linear model
+
+
+# Display model summary
+
+
+# Calculate predicted income for 100 members
+
+```
+
+**Your interpretation**:
+
+Are the model coefficients close to what the article reports (slope ~3,519, intercept ~-42,716)? Does a 100-member church predict to around $309,000?
+
+## Conclusion
+
+Summarize which findings you were able to replicate and which (if any) differed from the article. What did you learn about PCA church finances and leadership patterns?
+
+**Your conclusion**:
