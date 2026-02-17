@@ -1,0 +1,181 @@
+---
+title: "Reverse Engineering: The Most Republican Jobs in America"
+author: "Student Name"
+date: "2026-02-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+## Introduction
+
+In this reverse engineering assignment, you will analyze data from VRScores, a database that links workplaces with voting records, to reproduce key findings from Ryan Burge's article: ["The Most Republican Jobs in America? Start with the Church."](https://www.graphsaboutreligion.com/p/the-most-republican-jobs-in-america) published on his Substack newsletter "Graphs about Religion" on December 22, 2025.
+
+The article uses data from VRScores, which matched voter registration data (from a company called L2) with employment data (from Revelio Labs) to estimate the partisan composition of workers across more than 1,000 industries classified by NAICS codes. For states without closed primaries, the research team used prediction models to extend coverage.
+
+A copy of the article has been saved as an HTML file in this folder.
+
+### Your Assignment
+
+1. **Read the article carefully** and identify the key facts and figures the reporter presents
+2. **Examine the data** provided in the `data/` folder
+3. **Write your own code** to reproduce those key findings
+4. **Document your work** with clear comments explaining your analysis
+
+Your notebook should be well-organized, clearly commented, and demonstrate that you can independently reproduce data journalism findings.
+
+**Important note:** The article uses 2024 data as the most recent year, but our dataset covers 2012-2020. We will use 2020 as our most recent year. Your exact numbers will differ from the article's, but the patterns and relative rankings should be similar.
+
+## The Data
+
+The data comes from VRScores and covers NAICS (North American Industry Classification System) industry codes from 2012 through 2020. Each row represents one industry in one year.
+
+You have one combined data file in the `data/` folder:
+
+- **naics_combined.csv**: A combined dataset of all years (2012-2020), with a `year` column added. Each row is an industry-year observation containing worker counts, partisan shares, and diversity metrics.
+
+Key variables include:
+
+- `naics_code`: The NAICS industry classification code
+- `naics_desc`: Text description of the industry
+- `employee_count`: Number of workers in that industry-year
+- `democrat_pct_imp` / `republican_pct_imp`: Imputed share of workers who are Democrats/Republicans
+- `overall_margin_imp`: Republican share minus Democratic share (positive = Republican lean)
+- `political_diversity_imp`: A diversity index (higher = more politically diverse)
+
+See `data/codebook.md` for the full variable dictionary.
+
+## Load Libraries and Data
+
+```{r}
+# Load required libraries
+library(tidyverse)
+
+# Load the combined dataset
+naics <- read_csv("data/naics_combined.csv")
+
+# Preview the data
+glimpse(naics)
+```
+
+## Analysis
+
+Now it's your turn. Read through the article and identify the key facts and claims made. Then write well-commented code below to reproduce those findings using the data provided.
+
+Some questions to guide your work:
+
+- What is the partisan lean of Religious Organizations (NAICS code 813110) compared to other large industries?
+- Among the 50 largest industries, which ones have the highest Republican share?
+- Which industries are most politically similar to religious organizations? Has that changed over time?
+- How does the partisan composition of religious organizations compare to other sectors when you look at only the largest employers?
+
+### Finding 1: Religious Organizations Have a Republican Lean Among Large Sectors
+
+**Article claim:** Among large employment sectors, religious organizations are the only group to the right of center, with Republicans outnumbering Democrats by about 7 percentage points. Higher education is the most left-leaning (about 32 points more Democratic).
+
+Using 2020 as our most recent year, compare the partisan lean (overall_margin_imp) of religious organizations (NAICS 813110) to the top 10 largest industries by employee count.
+
+```{r}
+# Filter to 2020 data
+
+
+# Get the top 10 industries by employee count
+
+
+# Make sure religious organizations (813110) are included in the comparison
+
+
+# Calculate partisan margins for these industries
+
+```
+
+
+### Finding 2: Religious Organizations Have the Highest Republican Share Among the 50 Largest Industries
+
+**Article claim:** Looking at the 50 largest industries by total employees, religious organizations have the highest Republican share -- just below 50%. Commercial construction and real estate appraisal are close behind. The most Democratic-heavy large industries include internet services, clothing retail, media/streaming, and higher education.
+
+Using 2020 data, find the 50 largest industries and rank them by republican_pct_imp.
+
+```{r}
+# Filter to 2020 data and get the 50 largest industries by employee_count
+
+
+# Select key columns and arrange by republican_pct_imp
+
+
+# Where does Religious Organizations rank?
+
+```
+
+
+### Finding 3: Industries Most Similar to Religious Organizations (2012 vs. 2020)
+
+**Article claim:** Using Euclidean distance based on Democratic %, Republican %, and political diversity, the industries most similar to religious organizations include real estate appraisers, aerospace instrument manufacturers, car dealers, insurance brokers, and engineers -- industries that tend to have high incomes or are heavily regulated.
+
+Calculate the Euclidean distance of each industry from religious organizations in both 2012 and 2020, based on three dimensions: democrat_pct_imp, republican_pct_imp, and political_diversity_imp. Find the 10 nearest neighbors.
+
+```{r}
+# Get the reference point: religious organizations in 2020
+
+
+# Calculate Euclidean distance for all other industries in 2020
+
+
+# Show the 10 most similar industries
+
+
+```
+
+```{r}
+# Repeat for 2012
+
+
+# Compare: which industries appear in both years' top-10 lists?
+
+```
+
+
+### Finding 4: Nearest Big-Industry Neighbors
+
+**Article claim:** When restricted to the top 100 largest industries by employment, the nearest partisan neighbors to religious organizations include engineering, insurance, real estate, and manufacturing sectors.
+
+Repeat the similarity analysis, but only among the 100 largest industries.
+
+```{r}
+# Filter 2020 data to the 100 largest industries
+
+
+# Get the religious organizations reference point
+
+
+# Calculate distances and find the 10 nearest neighbors among big industries
+
+```
+
+
+### Finding 5: Partisan Lean Has Shifted Over Time
+
+**Article claim:** The article compares 2012 and 2024 data to show how the partisan composition of industries near religious organizations has shifted.
+
+Compare the partisan lean of religious organizations in 2012 vs 2020. How has the overall_margin_imp changed? What about republican_pct_imp?
+
+```{r}
+# Compare religious organizations across all available years
+
+
+# How has the margin changed from 2012 to 2020?
+
+```
+
+
+## Summary
+
+Write a paragraph summarizing your findings. Were you able to replicate the article's key claims? What patterns held up in 2020 data that the article found in 2024 data? What limitations did you encounter?
+
+## Data Sources
+
+- VRScores: Kagan, Max; Frake, Justin; Hurst, Reuben (2025). "VRscores: A New Measure and Dataset of Workforce Politics Using Voter Registrations." SSRN Working Paper No. 5104795.
+- Article: Burge, Ryan. "The Most Republican Jobs in America? Start with the Church." Graphs about Religion, December 22, 2025.
