@@ -1,0 +1,129 @@
+---
+title: "Reverse Engineering: The Assemblies of God in 2024"
+author: "Student Name"
+date: "2026-02-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+## Introduction
+
+In this reverse engineering assignment, you will analyze data from the Assemblies of God (AG) denominational statistical reports to reproduce key findings from Ryan Burge's article: ["The Assemblies of God in 2024"](https://www.graphsaboutreligion.com/p/the-assemblies-of-god-in-2024) published on his Substack newsletter "Graphs about Religion."
+
+The article examines the health of the Assemblies of God denomination across multiple metrics: membership trends over time, worship attendance patterns, the impact of COVID-19 on attendance (including a linear projection model), conversion and baptism inflows, and the changing racial composition of the denomination.
+
+A copy of the article has been saved as an HTML file in this folder.
+
+### Your Assignment
+
+1. **Read the article carefully** and identify the key facts and figures the reporter presents
+2. **Examine the data** provided in the CSV files in this folder
+3. **Write your own code** to reproduce those key findings
+4. **Document your work** with clear comments explaining your analysis
+
+Your notebook should be well-organized, clearly commented, and demonstrate that you can independently reproduce data journalism findings.
+
+**Important note:** The data files in this folder were reconstructed from values reported in the article and the R script. Some specific year-by-year values (especially for earlier decades) are approximations, but the key data points highlighted in the article are accurate.
+
+## The Data
+
+The data comes from the AG's denominational statistical reports, which the denomination publishes annually. There are four CSV files:
+
+- **`ag_membership.csv`**: Total AG membership by year from 1975-2024. Columns: `year`, `members`.
+- **`ag_attendance.csv`**: Weekly in-person worship attendance by year from 1978-2024. Columns: `year`, `attendance`.
+- **`ag_race.csv`**: Racial composition of AG adherents for selected years. Columns: `year`, `white`, `black`, `hispanic`, `asian_pacific`, `native_american`, `other_mixed`, `total`. Values are proportions (0 to 1).
+- **`ag_conversions.csv`**: Conversion inflows from 2020-2024 broken down by type. Columns: `year`, `water_baptisms`, `spirit_baptisms`, `other`, `total`.
+
+## Load Libraries and Data
+
+```{r}
+# Load required libraries
+library(tidyverse)
+
+# Load all four data files
+membership <- read_csv("ag_membership.csv")
+attendance <- read_csv("ag_attendance.csv")
+race <- read_csv("ag_race.csv")
+conversions <- read_csv("ag_conversions.csv")
+
+# Preview each dataset
+glimpse(membership)
+glimpse(attendance)
+glimpse(race)
+glimpse(conversions)
+```
+
+## Analysis
+
+### Finding 1: AG Membership Peaked Before the Pandemic and Has Not Fully Recovered
+
+**Article claim:** AG membership has risen in a remarkably steady way since 1975, climbing from about 1 million to a peak of about 3.3 million in 2019. COVID caused a loss of roughly 330,000 members in a single year (2020), wiping out more than twice the gains from 2014-2019. The current total (2024) sits at 3,059,461 — just slightly above the 3.04 million the AG reported in 2011. The recovery is underway but not yet complete.
+
+Using the membership data, calculate the peak membership and year it occurred, the size of the 2020 membership drop, the net change from 2014-2019 (to confirm the pandemic wiped out more than twice those gains), and compare the 2024 total to 2011.
+
+```{r}
+# Calculate key membership milestones
+
+
+```
+
+### Finding 2: Attendance-to-Membership Ratio and the COVID Impact
+
+**Article claim:** The article examines the ratio of weekly in-person worship attendance to total membership. In 1979, 72% of members attended worship. That ratio dropped to 63% by 2018, plunged to 54% during the pandemic low, and has recovered to about 64% in 2024. This ratio provides insight into how engaged the membership is — not just how many people are on the rolls.
+
+Join the membership and attendance data, calculate the attendance-to-membership ratio for overlapping years, and identify the key ratio values mentioned in the article.
+
+```{r}
+# Calculate the attendance-to-membership ratio
+
+
+```
+
+### Finding 3: Linear Projection Model Shows COVID Gap Closing by ~2029-2030
+
+**Article claim:** The article fits a linear trend line to 2009-2019 attendance data and projects it forward through 2024 to estimate what attendance would have been without COVID. Key findings: in 2020 actual attendance lagged the projection by about 300,000 (nearly 15% below trend); by 2021 the gap widened to ~400,000 (19.2% below); but by 2024 the gap had narrowed to about 173,000 (8.1% below). If the current recovery trajectory holds, the AG will have completely erased the COVID-era decline by around 2029 or 2030.
+
+Fit a linear model (`lm()`) to 2009-2019 attendance data. Predict attendance for 2009-2024. Calculate the absolute and percentage gaps between actual and projected attendance for 2020-2024. Then fit a trend line to the post-2020 gap to estimate when it reaches zero.
+
+```{r}
+# Fit a linear model to 2009-2019 attendance and project through 2024
+
+
+```
+
+### Finding 4: 2024 Was a Banner Year for Conversions
+
+**Article claim:** The article reports that total conversion inflows reached about 530,000 in 2024. Water baptisms nearly doubled from 94,000 in 2020 to 169,000 in 2024, meaning AG churches conducted roughly 3,250 water baptisms every weekend. Spirit baptisms grew from 62,000 to 84,000. The "other" category (likely denominational transfers) contributed about 277,000 in 2024.
+
+Using the conversions data, verify these numbers. Calculate the growth in each conversion type from 2020 to 2024, and compute the average weekly water baptisms figure (divide annual total by 52 weeks).
+
+```{r}
+# Analyze conversion trends from 2020-2024
+
+
+```
+
+### Finding 5: The AG's Racial Composition Now Mirrors the U.S. Population
+
+**Article claim:** In 2001, 71% of AG members were White, 16% were Hispanic, and 6% were Black. By 2024, only 55% are White, nearly a quarter (23%) are Hispanic, and about 11% are Black. The article notes that for comparison, the U.S. Census reports about 58% White (non-Hispanic), 12% Black, and 19% Hispanic — meaning the AG now looks almost exactly like the broader U.S. population.
+
+Using the race data, calculate the change in racial composition from 2001 to 2024. Compare the 2024 AG composition to the U.S. Census figures mentioned in the article. Calculate the percentage-point shift for each group over the full time period.
+
+```{r}
+# Analyze the changing racial composition of the AG
+
+
+```
+
+## Summary
+
+Write a paragraph summarizing your findings. Were you able to replicate the article's key claims? What patterns did you find most noteworthy? What additional data or context would have been useful for this analysis?
+
+## Data Sources
+
+- AG Denominational Statistical Reports, 2024
+- Article: Burge, Ryan. "The Assemblies of God in 2024." Graphs about Religion.

@@ -1,0 +1,245 @@
+---
+title: "Reverse Engineering: When Are Half Your Members Going to be Dead?"
+author: "Student Name"
+date: "2026-02-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+## Introduction
+
+In this reverse engineering assignment, you will analyze data from the 2024 Cooperative Election Study (CCES) to reproduce key findings from Ryan Burge's article: ["When Are Half Your Members Going to be Dead?"](https://www.graphsaboutreligion.com/p/when-are-half-your-members-going) published on his Substack newsletter "Graphs about Religion."
+
+The article examines the age distribution of the 20 largest denominations in the Cooperative Election Study, calculating mean and modal ages, Baby Boomer shares, the proportion of young adults (18-40), and projections for when each denomination will lose 30%, 40%, and 50% of its current adult membership to death (assuming all adults live to 85).
+
+A copy of the article has been saved as an HTML file in this folder.
+
+### Your Assignment
+
+1. **Read the article carefully** and identify the key facts and figures the reporter presents
+2. **Examine the data** provided in the `cces24.csv` file
+3. **Write your own code** to reproduce those key findings
+4. **Document your work** with clear comments explaining your analysis
+
+Your notebook should be well-organized, clearly commented, and demonstrate that you can independently reproduce data journalism findings.
+
+**Important note:** The article combines 2022 and 2024 CCES data, but our dataset only contains 2024 responses. Your exact numbers may differ slightly from the article's, but the patterns and relative rankings should be similar.
+
+## The Data
+
+The data comes from the 2024 Cooperative Election Study and contains 60,000 respondents. Each row represents one survey respondent.
+
+Key variables include:
+
+- `year`: Survey year (2024 for all rows)
+- `birthyr`: Year of birth
+- `weight`: Survey weight for the respondent
+- `baptist`: Baptist denomination code (1=Southern Baptist, 2=ABCUSA, 3=Natl. Baptist Convention, 5=Independent Baptist, 9=Free Will Baptist, 90=Other Baptist, etc.)
+- `methodist`: Methodist denomination code (1=United Methodist, 3=African Methodist Episcopal, etc.)
+- `nondenom`: Non-denominational code (1=Evangelical, 3=Charismatic, 4=Interdenominational, 5=Community Church, etc.)
+- `lutheran`: Lutheran denomination code (1=ELCA, 2=Missouri Synod, etc.)
+- `presbyterian`: Presbyterian denomination code (1=PCUSA, 2=PCA, etc.)
+- `pentecostal`: Pentecostal denomination code (1=Assemblies of God, 6=Church of God in Christ, etc.)
+- `episcopal`: Episcopal denomination code (1=TEC, etc.)
+- `christian`: Christian Church denomination code (1=Church of Christ, 2=Disciples of Christ, etc.)
+- `congregational`: Congregational denomination code (1=United Church of Christ, etc.)
+- `holiness`: Holiness denomination code (1=Church of the Nazarene, etc.)
+- `reformed`: Reformed denomination code (1=Reformed Church in America, 2=Christian Reformed, etc.)
+- `adventist`: Adventist denomination code (1=Seventh Day Adventist)
+
+Most respondents have NA for all denomination columns (meaning they are not affiliated with one of these specific denominations).
+
+## Load Libraries and Data
+
+```{r}
+# Load required libraries
+library(tidyverse)
+
+# Load the data
+cces <- read_csv("cces24.csv")
+
+# Preview the data
+glimpse(cces)
+```
+
+## Create the Denomination Variable
+
+The R script uses a series of case_when-style logic to assign each respondent to a specific denomination based on their denomination sub-category columns. We need to replicate this to create a `trad` variable.
+
+```{r}
+# Create the trad (tradition/denomination) variable
+# Each respondent is assigned to a denomination based on their specific sub-category responses
+# The order matters - the first matching condition wins
+
+cces <- cces %>%
+  mutate(
+    trad = case_when(
+      baptist == 1 ~ "Southern Baptist",
+      baptist == 2 ~ "ABCUSA",
+      baptist == 3 ~ "Natl. Baptist Convention",
+      baptist == 4 ~ "Progressive Baptist Convention",
+      baptist == 5 ~ "Independent Baptist",
+      baptist == 6 ~ "Baptist General Conference",
+      baptist == 7 ~ "Baptist Miss. Association",
+      baptist == 8 ~ "Conservative Bapt. Association",
+      baptist == 9 ~ "Free Will Baptist",
+      baptist == 10 ~ "Gen. Assoc. of Reg. Bapt.",
+      baptist == 90 ~ "Other Baptist",
+      methodist == 1 ~ "United Methodist",
+      methodist == 2 ~ "Free Methodist",
+      methodist == 3 ~ "African Methodist Episcopal",
+      methodist == 4 ~ "AME - Zion",
+      methodist == 5 ~ "Christian Methodist Episcopal",
+      methodist == 90 ~ "Other Methodist",
+      nondenom == 1 ~ "Nondenom Evangelical",
+      nondenom == 2 ~ "Nondenom Fundamentalist",
+      nondenom == 3 ~ "Nondenom Charismatic",
+      nondenom == 4 ~ "Interdenominational",
+      nondenom == 5 ~ "Community Church",
+      nondenom == 90 ~ "Other Nondenom",
+      lutheran == 1 ~ "ELCA",
+      lutheran == 2 ~ "Lutheran - Missouri Synod",
+      lutheran == 3 ~ "Lutheran - Wisconsin Synod",
+      lutheran == 4 ~ "Other Lutheran",
+      presbyterian == 1 ~ "PCUSA",
+      presbyterian == 2 ~ "PCA",
+      presbyterian == 3 ~ "Associated Reformed Presbyterian",
+      presbyterian == 4 ~ "Cumberland Presbyterian",
+      presbyterian == 5 ~ "Orthodox Presbyterian",
+      presbyterian == 6 ~ "Evangelical Presbyterian",
+      presbyterian == 90 ~ "Other Presbyterian",
+      pentecostal == 1 ~ "Assemblies of God",
+      pentecostal == 2 ~ "Church of God Cleveland TN",
+      pentecostal == 3 ~ "Four Square Gospel",
+      pentecostal == 4 ~ "Pentecostal Church of God",
+      pentecostal == 5 ~ "Pentecostal Holiness Church",
+      pentecostal == 6 ~ "Church of God in Christ",
+      pentecostal == 7 ~ "Church of God of the Apostolic Faith",
+      pentecostal == 8 ~ "Assembly of Christian Churches",
+      pentecostal == 9 ~ "Apostolic Christian",
+      pentecostal == 90 ~ "Other Pentecostal",
+      episcopal == 1 ~ "TEC",
+      episcopal == 2 ~ "Church of England",
+      episcopal == 3 ~ "Anglican Orthodox",
+      episcopal == 4 ~ "Reformed Episcopal",
+      episcopal == 90 ~ "Other Episcopal",
+      christian == 1 ~ "Church of Christ",
+      christian == 2 ~ "Disciples of Christ",
+      christian == 3 ~ "Christian Church",
+      christian == 90 ~ "Other Christian Church",
+      congregational == 1 ~ "United Church of Christ",
+      congregational == 2 ~ "Conservative Cong. Christian",
+      congregational == 3 ~ "National Assoc. of Cons. Cong.",
+      congregational == 90 ~ "Other Cong.",
+      holiness == 1 ~ "Church of the Nazarene",
+      holiness == 2 ~ "Wesleyan Church",
+      holiness == 4 ~ "Christian and Missionary Alliance",
+      holiness == 5 ~ "Church of God",
+      holiness == 6 ~ "Salvation Army",
+      reformed == 1 ~ "Reformed Church in America",
+      reformed == 2 ~ "Christian Reformed",
+      reformed == 90 ~ "Other Reformed",
+      adventist == 1 ~ "Seventh Day Adventist",
+      TRUE ~ NA_character_
+    )
+  )
+
+# Check how many respondents were assigned to each denomination
+cces %>%
+  filter(!is.na(trad)) %>%
+  count(trad) %>%
+  arrange(desc(n))
+```
+
+## Identify the Top 20 Denominations
+
+The article focuses on the 20 most common denominations in the CCES, excluding "Other" categories.
+
+```{r}
+# Find the top 20 denominations by count, excluding "Other" categories
+top20 <- cces %>%
+  mutate(age = 2024 - birthyr) %>%
+  count(trad) %>%
+  filter(!is.na(trad)) %>%
+  filter(!str_detect(trad, "^Other")) %>%
+  arrange(desc(n)) %>%
+  slice_head(n = 20) %>%
+  pull(trad)
+
+# Display the top 20
+top20
+```
+
+## Analysis
+
+### Finding 1: Age Distribution of the Top 20 Denominations
+
+**Article claim:** The article shows a stacked bar chart of the age distribution of the 20 largest denominations. Mainline Protestant denominations like PCUSA, ELCA, United Methodist, TEC (Episcopal), and Disciples of Christ are clustered at the top with the highest shares of members aged 75+. Meanwhile, denominations like Assemblies of God and several non-denominational groups have younger profiles.
+
+Calculate the age distribution across five age buckets (18-29, 30-44, 45-59, 60-74, 75+) for each of the top 20 denominations and display them ordered by their share of members aged 75+.
+
+```{r}
+# Calculate age and create age buckets for the top 20 denominations
+
+```
+
+### Finding 2: Mean and Mode Age by Denomination
+
+**Article claim:** The article presents a dumbbell chart showing both the mean (average) and modal (most common) ages for each denomination. Key findings include: the average adult member of an Episcopal church (TEC) is 61 years old, Southern Baptists average 58, and the Assemblies of God average 54. Most denominations have mean ages of at least 55. The Assemblies of God have a higher modal age (69) than United Methodists (67), yet their mean age is about seven years younger (54 vs. 61), because the AG has a larger share of younger members pulling the average down.
+
+Calculate the mean and mode age for each of the top 20 denominations.
+
+```{r}
+# Calculate mean and mode age for each denomination
+
+
+```
+
+### Finding 3: Share of Baby Boomers by Denomination
+
+**Article claim:** The article shows the share of each denomination's adults who are Baby Boomers (born 1946-1964). Mainline Protestant denominations tend to have the highest Boomer shares, while non-denominational and Pentecostal groups tend to be lower.
+
+Calculate the weighted share of Baby Boomers in each of the top 20 denominations.
+
+```{r}
+# Calculate the share of Baby Boomers (born 1946-1964) in each denomination
+
+
+```
+
+### Finding 4: "When Will Today's Adults Be Gone?" Death Timeline Projections
+
+**Article claim:** Assuming that all adults live to 85, the article estimates the calendar year in which 30%, 40%, and 50% of each denomination's current adult members will have died. For example, Free Will Baptists won't lose 30% of their adult membership until 2048, and for the Assemblies of God that number is 2044. Mainline denominations like TEC, PCUSA, and ELCA hit those thresholds much sooner.
+
+For each respondent, calculate `years_left = max(0, 85 - age)`. Then for each denomination, find the weighted 30th, 40th, and 50th percentiles of `years_left` and add them to 2024 to get the projected calendar years.
+
+```{r}
+# Calculate the projected years when 30%, 40%, and 50% of current adults will have died
+
+
+```
+
+### Finding 5: Assemblies of God vs. United Methodist Age Comparison
+
+**Article claim:** The article highlights the Assemblies of God vs. the United Methodists as a key comparison. The AG has a higher modal age (69 vs. 67), yet the mean age for the AG is about seven years younger (54 vs. 61). This is because the AG has a substantial younger cohort that pulls the average down, while the UMC's age distribution is more uniformly old. The "beeswarm" plot shows the AG distribution has a wider spread with more younger members, while the UMC is more concentrated among older adults.
+
+Compare the full age distributions of these two denominations side by side: calculate median, mean, mode, standard deviation, and the share in each age bucket.
+
+```{r}
+# Compare the age distributions of Assemblies of God vs. United Methodist
+
+
+```
+
+## Summary
+
+Write a paragraph summarizing your findings. Were you able to replicate the article's key claims? What patterns held up? What limitations did you encounter with using only 2024 data instead of the combined 2022-2024 data used in the article?
+
+## Data Sources
+
+- Cooperative Election Study, 2024
+- Article: Burge, Ryan. "When Are Half Your Members Going to be Dead?" Graphs about Religion.
