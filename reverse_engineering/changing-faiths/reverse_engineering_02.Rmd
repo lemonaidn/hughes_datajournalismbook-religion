@@ -48,28 +48,176 @@ The 12 religious categories are: Buddhist, Catholic, Evangelical Protestant, Hin
 library(tidyverse)
 
 # Load the datasets
+transition <- read_csv("data/transition_matrix.csv")
+initial <- read_csv("data/initial_distribution.csv")
+fertility <- read_csv("data/fertility_rates.csv")
 
+# The current.csv has no headers - it's 101 rows x 12 columns
+# Each row is one generation, each column is a religion in alphabetical order
+religions <- c("Buddhist", "Catholic", "Evangelical Protestant", "Hindu",
+               "Historically Black Protestant", "Jehovahs Witness", "Jewish",
+               "Mainline Protestant", "Mormon", "Muslim", "Orthodox Christian",
+               "Unaffiliated")
 
+equilibrium <- read_csv("data/current.csv", col_names = religions)
 ```
 
-## Analysis
+## Finding 1: Retention Rates - Who Stays in Their Faith?
 
-Now it's your turn. Read through the FiveThirtyEight article and identify the key facts and claims made. Then write well-commented code below to reproduce those findings using the data provided.
+**Article claim:** People raised evangelical Protestant have a 65% chance of staying evangelical. Catholics retain about 59% of those raised Catholic. Mainline Protestants have only a 45% retention rate. And the unaffiliated retain about 53%.
 
-Some questions to guide your work:
-- What does the article say about retention rates for different religious groups?
-- What patterns of religious switching does the article highlight?
-- What does the model project about the future religious makeup of America?
-- How do fertility rates factor into the projections?
-
-Structure your analysis with clear section headers and comments explaining what you're testing and what you found.
+The retention rate is the diagonal value in the transition matrix - the probability that someone raised in a faith stays in that faith.
 
 ```{r}
-# Your analysis code here
+# Extract the diagonal of the transition matrix (retention rates)
+# The diagonal represents the probability of staying in the faith you were raised in
+retention <- transition %>%
+  mutate(retention_rate = case_when(
+    raised_in == "Buddhist" ~ Buddhist,
+    raised_in == "Catholic" ~ Catholic,
+    raised_in == "Evangelical Protestant" ~ `Evangelical Protestant`,
+    raised_in == "Hindu" ~ Hindu,
+    raised_in == "Historically Black Protestant" ~ `Historically Black Protestant`,
+    raised_in == "Jehovahs Witness" ~ `Jehovahs Witness`,
+    raised_in == "Jewish" ~ Jewish,
+    raised_in == "Mainline Protestant" ~ `Mainline Protestant`,
+    raised_in == "Mormon" ~ Mormon,
+    raised_in == "Muslim" ~ Muslim,
+    raised_in == "Orthodox Christian" ~ `Orthodox Christian`,
+    raised_in == "Unaffiliated" ~ Unaffiliated
+  )) %>%
+  select(raised_in, retention_rate) %>%
+  arrange(desc(retention_rate))
 
+retention
+
+# Check the specific claims from the article
+cat("Evangelical retention rate:", round(retention$retention_rate[retention$raised_in == "Evangelical Protestant"] * 100, 1), "%\n")
+cat("Catholic retention rate:", round(retention$retention_rate[retention$raised_in == "Catholic"] * 100, 1), "%\n")
+cat("Unaffiliated retention rate:", round(retention$retention_rate[retention$raised_in == "Unaffiliated"] * 100, 1), "%\n")
+cat("Mainline Protestant retention rate:", round(retention$retention_rate[retention$raised_in == "Mainline Protestant"] * 100, 1), "%\n")
 ```
 
-## Findings
+**Your interpretation:** Does the data confirm ~65% for evangelicals, ~59% for Catholics, ~45% for mainline, and ~53% for unaffiliated?
+
+## Finding 2: Catholic-to-Evangelical vs. Evangelical-to-Catholic Switching
+
+**Article claim:** About 10% of people raised Catholic wind up as evangelicals, but just 2% of people born as evangelicals wind up Catholic.
+
+```{r}
+# What percent of those raised Catholic become evangelical?
+catholic_to_evangelical <- transition %>%
+  filter(raised_in == "Catholic") %>%
+  pull(`Evangelical Protestant`)
+
+cat("Percent of Catholics who become Evangelical:", round(catholic_to_evangelical * 100, 1), "%\n")
+
+# What percent of those raised evangelical become Catholic?
+evangelical_to_catholic <- transition %>%
+  filter(raised_in == "Evangelical Protestant") %>%
+  pull(Catholic)
+
+cat("Percent of Evangelicals who become Catholic:", round(evangelical_to_catholic * 100, 1), "%\n")
+
+# What is the ratio?
+cat("Ratio:", round(catholic_to_evangelical / evangelical_to_catholic, 1), "Catholics become evangelical for every 1 evangelical who becomes Catholic\n")
+```
+
+**Your interpretation:** Does the data show roughly a 5-to-1 ratio in favor of evangelicals gaining from Catholics?
+
+## Finding 3: Mainline-to-Evangelical vs. Evangelical-to-Mainline Switching
+
+**Article claim:** 19% of mainline Protestants wind up becoming evangelical, while only 12% of those raised evangelical end up in mainline congregations.
+
+```{r}
+# What percent of mainline Protestants become evangelical?
+mainline_to_evangelical <- transition %>%
+  filter(raised_in == "Mainline Protestant") %>%
+  pull(`Evangelical Protestant`)
+
+cat("Percent of Mainline who become Evangelical:", round(mainline_to_evangelical * 100, 1), "%\n")
+
+# What percent of evangelicals become mainline?
+evangelical_to_mainline <- transition %>%
+  filter(raised_in == "Evangelical Protestant") %>%
+  pull(`Mainline Protestant`)
+
+cat("Percent of Evangelicals who become Mainline:", round(evangelical_to_mainline * 100, 1), "%\n")
+
+# Evangelicals gain more than they lose to mainline
+cat("Net advantage for evangelicals:", round((mainline_to_evangelical - evangelical_to_mainline) * 100, 1), "percentage points\n")
+```
+
+**Your interpretation:** Does the data confirm that evangelicals gain nearly twice as many from mainline as they lose?
+
+## Finding 4: Initial vs. Current vs. Equilibrium Population Shares
+
+**Article claim:** Unaffiliated Americans make up 22.8% of the current population (up from 9.2% raised unaffiliated). At equilibrium (conversion only, no fertility), the unaffiliated would reach 29%, evangelicals would grow from 26% to 32%, and Catholics would shrink from 21% to 8%.
+
+```{r}
+# The initial distribution shows what share of Americans were RAISED in each religion
+initial %>% arrange(desc(share))
+
+# Row 1 of equilibrium is approximately the current distribution
+# The last row is the equilibrium
+current_shares <- equilibrium %>% slice(1)
+equilibrium_shares <- equilibrium %>% slice(n())
+
+# Compare initial (raised), current, and equilibrium
+comparison <- tibble(
+  religion = religions,
+  raised_in = initial$share,
+  current = as.numeric(current_shares[1,]),
+  equilibrium = as.numeric(equilibrium_shares[1,])
+) %>%
+  mutate(
+    raised_in_pct = round(raised_in * 100, 0),
+    current_pct = round(current * 100, 0),
+    equilibrium_pct = round(equilibrium * 100, 0)
+  ) %>%
+  select(religion, raised_in_pct, current_pct, equilibrium_pct) %>%
+  arrange(desc(current_pct))
+
+comparison
+
+# Highlight the key article claims
+cat("\nUnaffiliated: raised =", comparison$raised_in_pct[comparison$religion == "Unaffiliated"],
+    "%, current =", comparison$current_pct[comparison$religion == "Unaffiliated"],
+    "%, equilibrium =", comparison$equilibrium_pct[comparison$religion == "Unaffiliated"], "%\n")
+
+cat("Evangelical: raised =", comparison$raised_in_pct[comparison$religion == "Evangelical Protestant"],
+    "%, current =", comparison$current_pct[comparison$religion == "Evangelical Protestant"],
+    "%, equilibrium =", comparison$equilibrium_pct[comparison$religion == "Evangelical Protestant"], "%\n")
+
+cat("Catholic: raised =", comparison$raised_in_pct[comparison$religion == "Catholic"],
+    "%, current =", comparison$current_pct[comparison$religion == "Catholic"],
+    "%, equilibrium =", comparison$equilibrium_pct[comparison$religion == "Catholic"], "%\n")
+```
+
+**Your interpretation:** Does the data confirm that evangelicals are the biggest winners (growing from 26% to 32%) and Catholics are the biggest losers (shrinking from 21% to 8%) at equilibrium?
+
+## Finding 5: Fertility Rates - Mormons Highest, Unaffiliated Lowest
+
+**Article claim:** Mormons have the highest fertility rate at 3.4 children per woman. Unaffiliated Americans have the lowest at 1.7 children per woman (below replacement level of ~2.1).
+
+```{r}
+# Display fertility rates sorted from highest to lowest
+fertility %>% arrange(desc(children_per_woman))
+
+# Key comparisons from the article
+cat("\nMormon fertility rate:", fertility$children_per_woman[fertility$religion == "Mormon"], "\n")
+cat("Muslim fertility rate:", fertility$children_per_woman[fertility$religion == "Muslim"], "\n")
+cat("Unaffiliated fertility rate:", fertility$children_per_woman[fertility$religion == "Unaffiliated"], "\n")
+cat("Mainline Protestant fertility rate:", fertility$children_per_woman[fertility$religion == "Mainline Protestant"], "\n")
+
+# How many groups are below replacement level (2.1)?
+below_replacement <- fertility %>% filter(children_per_woman < 2.1)
+cat("\nGroups below replacement level (2.1):", nrow(below_replacement), "\n")
+cat("They are:", paste(below_replacement$religion, collapse = ", "), "\n")
+```
+
+**Your interpretation:** Does the data confirm that Mormons have the highest fertility (3.4) and unaffiliated the lowest (1.7)? What does this suggest about the long-term projections when fertility is included?
+
+## Summary
 
 Write a summary of your findings here. Did your analysis confirm what the article reported? Were there any discrepancies? What did you learn about religious switching patterns in America?
-

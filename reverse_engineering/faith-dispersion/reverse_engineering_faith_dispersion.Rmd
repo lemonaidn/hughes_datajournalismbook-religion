@@ -21,62 +21,329 @@ In this reverse engineering assignment, you will analyze Mike McMullen's report 
 3.  Write well-commented, well-structured R code to reproduce those findings
 4.  Focus on replicable quantitative sentences (not the maps)
 
-**Important:** This is NOT a step-by-step walkthrough. You are expected to independently: - Identify which claims in the report can be verified with data - Determine what data you need and how to obtain it - Clean and analyze the data appropriately - Reproduce the findings with your own code
+**Important:** The data files from the 2020 U.S. Religion Census are in the `data/` folder.
 
-## Load Libraries
+## The Data
+
+The report analyzes seven non-Christian faith traditions: Baha'i Faith, Buddhism, Hinduism, Islam, Judaism, Sikhism, and Zoroastrianism. It examines their geographic dispersion across U.S. metropolitan areas, classifying metro areas by "gateway city" type.
+
+**Key definitions:**
+
+- **High-concentration area:** A metropolitan area with at least 6 houses of worship for a given faith tradition
+- **Gateway city types** (from Singer et al., 2008): Former, Continuous, Post-WWII, Emerging, Re-emerging, Pre-emerging
+
+## Load Libraries and Data
 
 ```{r}
-# Load the tidyverse and any other libraries you need
-
-
+library(tidyverse)
+library(readxl)
 ```
-
-## Load Data
 
 ```{r}
 # Load the 2020 U.S. Religion Census data
-# You will need to download this from usreligioncensus.org
-# and determine which variables/tables to use
+# Group Detail has individual religious group data by geographic level
+# Summaries has aggregate totals by geographic level
+groups_nation <- read_excel("data/2020_USRC_Group_Detail.xlsx", sheet = "2020 Group by Nation")
+groups_metro  <- read_excel("data/2020_USRC_Group_Detail.xlsx", sheet = "2020 Group by Metro")
 
-
+glimpse(groups_metro)
 ```
-
-## Questions to Guide Your Analysis
-
-As you read the report, consider these questions:
-
-1.  **What are the main quantitative claims?** Look for specific percentages, counts, or comparisons in the text and tables.
-
-2.  **What data sources were used?** The report primarily uses the 2020 U.S. Religion Census data aggregated at the county level.
-
-3.  **What is the methodology?** How did the author define "high-concentration areas" (6+ houses of worship per metro area)? How were gateway cities classified?
-
-4.  **What can you reproduce?** Focus on the percentage breakdowns in Tables 1-7 that show the distribution of houses of worship across different gateway city types.
-
-5.  **What calculations are needed?** You'll likely need to:
-
-    -   Count houses of worship by metropolitan area
-    -   Filter for high-concentration areas (6+ houses of worship)
-    -   Classify metropolitan areas by gateway type
-    -   Calculate percentages of houses of worship in each gateway category
-
-## Your Analysis
-
-Write your code below to reproduce key findings from the report. For each finding: - State the claim from the report - Show your code with clear comments - Present your results - Compare to what the report stated
 
 ```{r}
-# Your analysis here
+# The report examines 7 non-Christian faith traditions.
+# We need to map Group Codes from the Religion Census to each tradition.
+#
+# Key group codes:
+# Baha'i:   056 (Baha'i Faith USA)
+# Buddhist: 890 (Mahayana), 891 (Theravada), 892 (Vajrayana)
+# Hindu:    895 (Hindu Temples) -- the report focuses on temples specifically
+# Muslim:   267 (Muslim Estimate)
+# Jewish:   270 (Conservative), 271 (Reform), 275 (Reconstructionist),
+#           276 (Orthodox), FGR (Independent), FGS (Chabad)
+# Sikh:     416 (American Sikh Council)
+# Zoroastrian: 490
 
-
+faith_mapping <- tribble(
+  ~group_code, ~faith,
+  "056", "Bahai",
+  "890", "Buddhist",
+  "891", "Buddhist",
+  "892", "Buddhist",
+  "895", "Hindu",
+  "267", "Muslim",
+  "270", "Jewish",
+  "271", "Jewish",
+  "275", "Jewish",
+  "276", "Jewish",
+  "FGR", "Jewish",
+  "FGS", "Jewish",
+  "416", "Sikh",
+  "490", "Zoroastrian"
+)
 ```
 
-## Findings
+## Define Gateway City Classifications
 
-Summarize what you were able to reproduce and any discrepancies you found.
+```{r}
+# Gateway city classifications from Singer et al. (2008)
+# These patterns match the metro area names in the Religion Census data.
+# Established gateways: Former, Continuous, Post-WWII
+# 21st-century gateways: Emerging, Re-emerging, Pre-emerging
+
+gateway_cities <- tribble(
+  ~pattern, ~gateway_type,
+  "Baltimore-Columbia", "Former",
+  "Buffalo-Cheektowaga", "Former",
+  "Cleveland-Elyria, OH", "Former",
+  "Detroit-Warren", "Former",
+  "Milwaukee-Waukesha", "Former",
+  "Philadelphia-Camden", "Former",
+  "Pittsburgh, PA", "Former",
+  "St. Louis, MO", "Former",
+  "Boston-Cambridge", "Continuous",
+  "New York-Newark", "Continuous",
+  "Chicago-Naperville", "Continuous",
+  "San Francisco-Oakland", "Continuous",
+  "Houston-The Woodlands", "Post-WWII",
+  "Los Angeles-Long Beach", "Post-WWII",
+  "Riverside-San Bernardino", "Post-WWII",
+  "San Diego-Chula Vista", "Post-WWII",
+  "Miami-Fort Lauderdale", "Post-WWII",
+  "Atlanta-Sandy Springs", "Emerging",
+  "Dallas-Fort Worth", "Emerging",
+  "Las Vegas-Henderson", "Emerging",
+  "Orlando-Kissimmee", "Emerging",
+  "Washington-Arlington", "Emerging",
+  "Minneapolis-St. Paul", "Re-emerging",
+  "Denver-Aurora", "Re-emerging",
+  "Phoenix-Mesa", "Re-emerging",
+  "Portland-Vancouver-Hillsboro, OR", "Re-emerging",
+  "Sacramento-Roseville", "Re-emerging",
+  "San Jose-Sunnyvale", "Re-emerging",
+  "Tampa-St. Petersburg", "Re-emerging",
+  "Seattle-Tacoma", "Re-emerging",
+  "Raleigh-Cary", "Pre-emerging",
+  "Charlotte-Concord", "Pre-emerging",
+  "Salt Lake City", "Pre-emerging",
+  "Austin-Round Rock", "Pre-emerging"
+)
+
+# Helper function: match a metro name to its gateway type
+assign_gateway <- function(metro_name) {
+  for (i in 1:nrow(gateway_cities)) {
+    if (str_detect(metro_name, fixed(gateway_cities$pattern[i]))) {
+      return(gateway_cities$gateway_type[i])
+    }
+  }
+  return(NA_character_)
+}
+```
+
+## Finding 1: National Count of Houses of Worship by Faith Tradition
+
+**Report context:** The report examines seven non-Christian faith traditions in the U.S. and discusses their total numbers of houses of worship. Buddhism has 3 branches tracked separately; Judaism has 6 branches. The report focuses specifically on "Hindu Temples" (not yoga/meditation centers) for Hinduism.
+
+```{r}
+# Count national totals for each of the 7 faiths
+national_counts <- groups_nation %>%
+  inner_join(faith_mapping, by = c("Group Code" = "group_code")) %>%
+  group_by(faith) %>%
+  summarise(
+    total_congregations = sum(Congregations, na.rm = TRUE),
+    total_adherents = sum(Adherents, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(total_congregations))
+
+national_counts
+
+cat("\nKey numbers from the report:\n")
+cat("Muslim mosques: 2,771 nationally (267 code)\n")
+cat("Buddhist temples: 1,984 nationally (890 + 891 + 892)\n")
+cat("Jewish synagogues: 3,306+ nationally (6 branches combined)\n")
+cat("Baha'i communities: 983 nationally\n")
+cat("Hindu temples: 433 nationally (code 895 only)\n")
+cat("Sikh gurdwaras: 307 nationally\n")
+cat("Zoroastrian temples: 33 nationally\n")
+```
+
+**Your interpretation:** Which non-Christian faith tradition has the most houses of worship? Which has the fewest? How do these numbers reflect each group's size and history in the U.S.?
+
+## Finding 2: Houses of Worship in High-Concentration Metro Areas
+
+**Report claims:** The report counts how many houses of worship are in "high-concentration" metro areas (those with 6 or more congregations of that faith). For example, there are 1,545 Buddhist temples in high-concentration metros, 230 Hindu temples, 2,082 Jewish synagogues, 2,296 mosques, and 129 Sikh gurdwaras.
+
+```{r}
+# Aggregate congregations by faith and metro area,
+# then filter to high-concentration areas (6+ congregations)
+metro_by_faith <- groups_metro %>%
+  inner_join(faith_mapping, by = c("Group Code" = "group_code")) %>%
+  group_by(faith, `Metro Name`) %>%
+  summarise(congregations = sum(Congregations, na.rm = TRUE), .groups = "drop")
+
+high_conc <- metro_by_faith %>%
+  filter(congregations >= 6)
+
+# Count of high-concentration metros and total congregations per faith
+high_conc_summary <- high_conc %>%
+  group_by(faith) %>%
+  summarise(
+    n_high_conc_metros = n(),
+    total_congregations_in_hc = sum(congregations),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(total_congregations_in_hc))
+
+high_conc_summary
+
+cat("\nReport comparison:\n")
+cat("Buddhist temples in HC metros: 1,545 (our result:",
+    high_conc_summary %>% filter(faith == "Buddhist") %>% pull(total_congregations_in_hc), ")\n")
+cat("Hindu temples in HC metros: 230 (our result:",
+    high_conc_summary %>% filter(faith == "Hindu") %>% pull(total_congregations_in_hc), ")\n")
+cat("Sikh gurdwaras in HC metros: 129 (our result:",
+    high_conc_summary %>% filter(faith == "Sikh") %>% pull(total_congregations_in_hc), ")\n")
+```
+
+**Your interpretation:** Which faiths have their houses of worship concentrated in a few metros vs. spread across many? Does the number of high-concentration metros tell you something about geographic dispersion?
+
+## Finding 3: Buddhist Temple Distribution Across Gateway City Types
+
+**Report claim (Table 2):** Of the 1,545 Buddhist temples in high-concentration metros, 45.6% are in established gateways (Former 6.0%, Continuous 21.3%, Post-WWII 18.3%) and 25.2% are in 21st-century gateways (Emerging 9.1%, Re-emerging 14.0%, Pre-emerging 2.1%).
+
+```{r}
+# Get Buddhist temples in high-concentration metros
+buddhist_hc <- high_conc %>%
+  filter(faith == "Buddhist") %>%
+  mutate(gateway_type = map_chr(`Metro Name`, assign_gateway))
+
+# Calculate the distribution across gateway types
+buddhist_gateway <- buddhist_hc %>%
+  group_by(gateway_type) %>%
+  summarise(
+    n_metros = n(),
+    total_congregations = sum(congregations),
+    .groups = "drop"
+  ) %>%
+  mutate(pct = round(total_congregations / sum(buddhist_hc$congregations) * 100, 1))
+
+buddhist_gateway
+
+# Calculate established vs 21st-century totals
+established <- buddhist_gateway %>%
+  filter(gateway_type %in% c("Former", "Continuous", "Post-WWII")) %>%
+  summarise(total_pct = sum(pct))
+
+twenty_first <- buddhist_gateway %>%
+  filter(gateway_type %in% c("Emerging", "Re-emerging", "Pre-emerging")) %>%
+  summarise(total_pct = sum(pct))
+
+cat("\nEstablished gateway total:", established$total_pct, "% (report claims: 45.6%)\n")
+cat("21st-century gateway total:", twenty_first$total_pct, "% (report claims: 25.2%)\n")
+```
+
+**Your interpretation:** Does the data match the article's Table 2? Are Buddhist temples more concentrated in established or 21st-century gateways? What does this tell you about the history of Buddhist immigration?
+
+## Finding 4: Hindu Temple Distribution Shows Highest Established Gateway Concentration
+
+**Report claim (Table 3):** Of the 230 Hindu temples in high-concentration metros, 76.9% are in established gateways (Former 11.7%, Continuous 45.2%, Post-WWII 20.0%) and 23.1% are in 21st-century gateways (Emerging 17.4%, Re-emerging 5.7%, Pre-emerging 0.0%). This is the highest established-gateway concentration among the faiths studied.
+
+```{r}
+# Hindu temples in high-concentration metros
+hindu_hc <- high_conc %>%
+  filter(faith == "Hindu") %>%
+  mutate(gateway_type = map_chr(`Metro Name`, assign_gateway))
+
+hindu_gateway <- hindu_hc %>%
+  group_by(gateway_type) %>%
+  summarise(
+    n_metros = n(),
+    total_congregations = sum(congregations),
+    .groups = "drop"
+  ) %>%
+  mutate(pct = round(total_congregations / sum(hindu_hc$congregations) * 100, 1))
+
+hindu_gateway
+
+established_hindu <- hindu_gateway %>%
+  filter(gateway_type %in% c("Former", "Continuous", "Post-WWII")) %>%
+  summarise(total_pct = sum(pct))
+
+cat("\nHindu established gateway total:", established_hindu$total_pct,
+    "% (report claims: 76.9%)\n")
+cat("Continuous gateways alone:",
+    hindu_gateway %>% filter(gateway_type == "Continuous") %>% pull(pct),
+    "% (report claims: 45.2%)\n")
+```
+
+**Your interpretation:** Does the data confirm that Hindu temples have the highest concentration in established gateways? Nearly half are in continuous gateways (Boston, New York, Chicago, San Francisco) -- what might explain this?
+
+## Finding 5: Comparing Established vs. 21st-Century Gateway Shares Across All Faiths
+
+**Report context:** The report finds a range: Judaism is the most concentrated in established gateways (84.1%), while Baha'i has the highest share in 21st-century gateways (52.7%). This reflects each faith's immigration history -- older immigration waves settled in established gateways, while newer waves dispersed to 21st-century gateways.
+
+```{r}
+# Calculate established vs 21st-century shares for ALL faiths
+all_faiths_gateway <- high_conc %>%
+  mutate(gateway_type = map_chr(`Metro Name`, assign_gateway)) %>%
+  mutate(gateway_era = case_when(
+    gateway_type %in% c("Former", "Continuous", "Post-WWII") ~ "Established",
+    gateway_type %in% c("Emerging", "Re-emerging", "Pre-emerging") ~ "21st Century",
+    TRUE ~ "Non-gateway"
+  )) %>%
+  group_by(faith, gateway_era) %>%
+  summarise(total_cong = sum(congregations), .groups = "drop") %>%
+  group_by(faith) %>%
+  mutate(pct = round(total_cong / sum(total_cong) * 100, 1)) %>%
+  ungroup()
+
+# Show established gateway share for each faith
+established_comparison <- all_faiths_gateway %>%
+  filter(gateway_era == "Established") %>%
+  select(faith, established_pct = pct) %>%
+  arrange(desc(established_pct))
+
+established_comparison
+
+cat("\nReport claims for established gateway shares:\n")
+cat("Jewish: 84.1%\n")
+cat("Hindu: 76.9%\n")
+cat("Muslim: 51.2%\n")
+cat("Sikh: 50.3%\n")
+cat("Buddhist: 45.6%\n")
+cat("Bahai: 45.5%\n")
+
+# Show 21st-century shares
+twentyfirst_comparison <- all_faiths_gateway %>%
+  filter(gateway_era == "21st Century") %>%
+  select(faith, twentyfirst_pct = pct) %>%
+  arrange(desc(twentyfirst_pct))
+
+cat("\n21st-century gateway shares:\n")
+twentyfirst_comparison
+```
+
+**Your interpretation:** Which faith is most concentrated in traditional/established gateway cities? Which has dispersed the most into newer gateway cities? How does this reflect each group's immigration history?
+
+## Summary
+
+Summarize what you were able to reproduce and any discrepancies you found. The key findings involve:
+
+1. Counting national houses of worship for each non-Christian faith tradition
+2. Identifying "high-concentration" metro areas (6+ congregations) for each faith
+3. Calculating the percentage of congregations in each gateway city type
+4. Comparing established vs. 21st-century gateway concentration across faiths
+
+Note: Some counts may differ slightly from the report due to data preparation choices (e.g., which Jewish branches to include, whether to count Hindu yoga/meditation centers). The gateway city percentage distributions should match closely because they use the same underlying metro-level data.
 
 ## Challenges and Limitations
 
-Describe any challenges you encountered: - What data was difficult to obtain or prepare? - What assumptions did you have to make? - What findings could not be reproduced and why?
+Describe any challenges you encountered:
+
+- How did you handle the mapping of individual Religious Census group codes to the broader faith traditions?
+- The report uses "Hindu Temples" (code 895) specifically, not including "Hindu Yoga and Meditation" (code 896). Why might this matter?
+- What about the Zoroastrian analysis? The report uses a threshold of 2+ temples instead of 6+ because there are so few Zoroastrian temples nationally (only 33).
+- Not all high-concentration metros are in gateway cities -- the "non-gateway" percentage explains why the gateway totals don't add up to 100%.
 
 ## Data Sources
 

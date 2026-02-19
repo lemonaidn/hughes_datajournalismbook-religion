@@ -14,232 +14,255 @@ options(scipen=999)
 
 In this reverse engineering assignment, you will analyze data from the 2024 Cooperative Election Study (CCES) to reproduce key findings from Ryan Burge's article: ["When Are Half Your Members Going to be Dead?"](https://www.graphsaboutreligion.com/p/when-are-half-your-members-going) published on his Substack newsletter "Graphs about Religion."
 
-The article examines the age distribution of the 20 largest denominations in the Cooperative Election Study, calculating mean and modal ages, Baby Boomer shares, the proportion of young adults (18-40), and projections for when each denomination will lose 30%, 40%, and 50% of its current adult membership to death (assuming all adults live to 85).
+The article examines the age distribution of the 20 largest denominations in the Cooperative Election Study, calculating mean and modal ages, Baby Boomer shares, and projections for when each denomination will lose significant portions of its current membership.
 
 A copy of the article has been saved as an HTML file in this folder.
-
-### Your Assignment
-
-1. **Read the article carefully** and identify the key facts and figures the reporter presents
-2. **Examine the data** provided in the `cces24.csv` file
-3. **Write your own code** to reproduce those key findings
-4. **Document your work** with clear comments explaining your analysis
-
-Your notebook should be well-organized, clearly commented, and demonstrate that you can independently reproduce data journalism findings.
 
 **Important note:** The article combines 2022 and 2024 CCES data, but our dataset only contains 2024 responses. Your exact numbers may differ slightly from the article's, but the patterns and relative rankings should be similar.
 
 ## The Data
 
-The data comes from the 2024 Cooperative Election Study and contains 60,000 respondents. Each row represents one survey respondent.
+The data comes from the 2024 Cooperative Election Study and contains 60,000 respondents.
 
-Key variables include:
-
-- `year`: Survey year (2024 for all rows)
-- `birthyr`: Year of birth
-- `weight`: Survey weight for the respondent
-- `baptist`: Baptist denomination code (1=Southern Baptist, 2=ABCUSA, 3=Natl. Baptist Convention, 5=Independent Baptist, 9=Free Will Baptist, 90=Other Baptist, etc.)
-- `methodist`: Methodist denomination code (1=United Methodist, 3=African Methodist Episcopal, etc.)
-- `nondenom`: Non-denominational code (1=Evangelical, 3=Charismatic, 4=Interdenominational, 5=Community Church, etc.)
-- `lutheran`: Lutheran denomination code (1=ELCA, 2=Missouri Synod, etc.)
-- `presbyterian`: Presbyterian denomination code (1=PCUSA, 2=PCA, etc.)
-- `pentecostal`: Pentecostal denomination code (1=Assemblies of God, 6=Church of God in Christ, etc.)
-- `episcopal`: Episcopal denomination code (1=TEC, etc.)
-- `christian`: Christian Church denomination code (1=Church of Christ, 2=Disciples of Christ, etc.)
-- `congregational`: Congregational denomination code (1=United Church of Christ, etc.)
-- `holiness`: Holiness denomination code (1=Church of the Nazarene, etc.)
-- `reformed`: Reformed denomination code (1=Reformed Church in America, 2=Christian Reformed, etc.)
-- `adventist`: Adventist denomination code (1=Seventh Day Adventist)
-
-Most respondents have NA for all denomination columns (meaning they are not affiliated with one of these specific denominations).
+Key variables: - `year`: Survey year (2024 for all rows) - `birthyr`: Year of birth - `weight`: Survey weight for the respondent - `baptist`, `methodist`, `nondenom`, `lutheran`, `presbyterian`, `pentecostal`, `episcopal`, `christian`, `congregational`, `holiness`, `reformed`, `adventist`: Denomination sub-category codes (most are NA)
 
 ## Load Libraries and Data
 
 ```{r}
-# Load required libraries
 library(tidyverse)
 
-# Load the data
 cces <- read_csv("cces24.csv")
-
-# Preview the data
 glimpse(cces)
 ```
 
 ## Create the Denomination Variable
 
-The R script uses a series of case_when-style logic to assign each respondent to a specific denomination based on their denomination sub-category columns. We need to replicate this to create a `trad` variable.
-
 ```{r}
-# Create the trad (tradition/denomination) variable
-# Each respondent is assigned to a denomination based on their specific sub-category responses
-# The order matters - the first matching condition wins
-
 cces <- cces %>%
   mutate(
+    age = 2024 - birthyr,
     trad = case_when(
       baptist == 1 ~ "Southern Baptist",
       baptist == 2 ~ "ABCUSA",
       baptist == 3 ~ "Natl. Baptist Convention",
-      baptist == 4 ~ "Progressive Baptist Convention",
       baptist == 5 ~ "Independent Baptist",
-      baptist == 6 ~ "Baptist General Conference",
-      baptist == 7 ~ "Baptist Miss. Association",
-      baptist == 8 ~ "Conservative Bapt. Association",
       baptist == 9 ~ "Free Will Baptist",
-      baptist == 10 ~ "Gen. Assoc. of Reg. Bapt.",
       baptist == 90 ~ "Other Baptist",
       methodist == 1 ~ "United Methodist",
-      methodist == 2 ~ "Free Methodist",
       methodist == 3 ~ "African Methodist Episcopal",
-      methodist == 4 ~ "AME - Zion",
-      methodist == 5 ~ "Christian Methodist Episcopal",
       methodist == 90 ~ "Other Methodist",
       nondenom == 1 ~ "Nondenom Evangelical",
-      nondenom == 2 ~ "Nondenom Fundamentalist",
       nondenom == 3 ~ "Nondenom Charismatic",
       nondenom == 4 ~ "Interdenominational",
       nondenom == 5 ~ "Community Church",
       nondenom == 90 ~ "Other Nondenom",
       lutheran == 1 ~ "ELCA",
       lutheran == 2 ~ "Lutheran - Missouri Synod",
-      lutheran == 3 ~ "Lutheran - Wisconsin Synod",
-      lutheran == 4 ~ "Other Lutheran",
       presbyterian == 1 ~ "PCUSA",
       presbyterian == 2 ~ "PCA",
-      presbyterian == 3 ~ "Associated Reformed Presbyterian",
-      presbyterian == 4 ~ "Cumberland Presbyterian",
-      presbyterian == 5 ~ "Orthodox Presbyterian",
-      presbyterian == 6 ~ "Evangelical Presbyterian",
-      presbyterian == 90 ~ "Other Presbyterian",
       pentecostal == 1 ~ "Assemblies of God",
-      pentecostal == 2 ~ "Church of God Cleveland TN",
-      pentecostal == 3 ~ "Four Square Gospel",
-      pentecostal == 4 ~ "Pentecostal Church of God",
-      pentecostal == 5 ~ "Pentecostal Holiness Church",
       pentecostal == 6 ~ "Church of God in Christ",
-      pentecostal == 7 ~ "Church of God of the Apostolic Faith",
-      pentecostal == 8 ~ "Assembly of Christian Churches",
-      pentecostal == 9 ~ "Apostolic Christian",
-      pentecostal == 90 ~ "Other Pentecostal",
       episcopal == 1 ~ "TEC",
-      episcopal == 2 ~ "Church of England",
-      episcopal == 3 ~ "Anglican Orthodox",
-      episcopal == 4 ~ "Reformed Episcopal",
-      episcopal == 90 ~ "Other Episcopal",
       christian == 1 ~ "Church of Christ",
       christian == 2 ~ "Disciples of Christ",
-      christian == 3 ~ "Christian Church",
-      christian == 90 ~ "Other Christian Church",
       congregational == 1 ~ "United Church of Christ",
-      congregational == 2 ~ "Conservative Cong. Christian",
-      congregational == 3 ~ "National Assoc. of Cons. Cong.",
-      congregational == 90 ~ "Other Cong.",
       holiness == 1 ~ "Church of the Nazarene",
-      holiness == 2 ~ "Wesleyan Church",
-      holiness == 4 ~ "Christian and Missionary Alliance",
-      holiness == 5 ~ "Church of God",
-      holiness == 6 ~ "Salvation Army",
-      reformed == 1 ~ "Reformed Church in America",
-      reformed == 2 ~ "Christian Reformed",
-      reformed == 90 ~ "Other Reformed",
       adventist == 1 ~ "Seventh Day Adventist",
       TRUE ~ NA_character_
     )
   )
 
-# Check how many respondents were assigned to each denomination
-cces %>%
-  filter(!is.na(trad)) %>%
-  count(trad) %>%
-  arrange(desc(n))
-```
-
-## Identify the Top 20 Denominations
-
-The article focuses on the 20 most common denominations in the CCES, excluding "Other" categories.
-
-```{r}
 # Find the top 20 denominations by count, excluding "Other" categories
 top20 <- cces %>%
-  mutate(age = 2024 - birthyr) %>%
-  count(trad) %>%
   filter(!is.na(trad)) %>%
   filter(!str_detect(trad, "^Other")) %>%
+  count(trad) %>%
   arrange(desc(n)) %>%
   slice_head(n = 20) %>%
   pull(trad)
 
-# Display the top 20
+cat("Top 20 denominations:\n")
 top20
 ```
 
-## Analysis
+## Finding 1: Mean Age by Denomination
 
-### Finding 1: Age Distribution of the Top 20 Denominations
-
-**Article claim:** The article shows a stacked bar chart of the age distribution of the 20 largest denominations. Mainline Protestant denominations like PCUSA, ELCA, United Methodist, TEC (Episcopal), and Disciples of Christ are clustered at the top with the highest shares of members aged 75+. Meanwhile, denominations like Assemblies of God and several non-denominational groups have younger profiles.
-
-Calculate the age distribution across five age buckets (18-29, 30-44, 45-59, 60-74, 75+) for each of the top 20 denominations and display them ordered by their share of members aged 75+.
+**Article claim:** The average adult member of an Episcopal church (TEC) is 61 years old, Southern Baptists average 58, and the Assemblies of God average 54. Most denominations have mean ages of at least 55.
 
 ```{r}
-# Calculate age and create age buckets for the top 20 denominations
+# Calculate weighted mean age for each of the top 20 denominations
+mean_ages <- cces %>%
+  filter(trad %in% top20) %>%
+  group_by(trad) %>%
+  summarise(
+    n = n(),
+    mean_age = round(weighted.mean(age, weight, na.rm = TRUE), 1),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(mean_age))
 
+mean_ages
+
+# Key comparisons from the article
+cat("\nKey mean ages:\n")
+for (denom in c("TEC", "Southern Baptist", "Assemblies of God", "United Methodist", "ELCA", "PCUSA")) {
+  val <- mean_ages %>% filter(trad == denom) %>% pull(mean_age)
+  if (length(val) > 0) cat(denom, ":", val, "\n")
+}
+
+# How many have mean ages of at least 55?
+cat("\nDenominations with mean age >= 55:", sum(mean_ages$mean_age >= 55), "of", nrow(mean_ages), "\n")
 ```
 
-### Finding 2: Mean and Mode Age by Denomination
+**Your interpretation:** Does the data confirm the mean ages reported in the article? Are most denominations at 55+?
 
-**Article claim:** The article presents a dumbbell chart showing both the mean (average) and modal (most common) ages for each denomination. Key findings include: the average adult member of an Episcopal church (TEC) is 61 years old, Southern Baptists average 58, and the Assemblies of God average 54. Most denominations have mean ages of at least 55. The Assemblies of God have a higher modal age (69) than United Methodists (67), yet their mean age is about seven years younger (54 vs. 61), because the AG has a larger share of younger members pulling the average down.
+## Finding 2: Modal Age by Denomination
 
-Calculate the mean and mode age for each of the top 20 denominations.
+**Article claim:** In many mainline Protestant denominations, the modal age is between 67 and 69. The Assemblies of God has a higher modal age (69) than United Methodists (67), yet the AG's mean age is about 7 years younger (54 vs. 61).
 
 ```{r}
-# Calculate mean and mode age for each denomination
+# Calculate the modal (most common) age for each denomination
+# Mode = the age with the highest count (unweighted for simplicity)
+mode_ages <- cces %>%
+  filter(trad %in% top20) %>%
+  group_by(trad, age) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(trad) %>%
+  filter(n == max(n)) %>%
+  summarise(modal_age = min(age), .groups = "drop")  # min in case of ties
 
+# Join with mean ages
+age_comparison <- mean_ages %>%
+  left_join(mode_ages, by = "trad") %>%
+  mutate(mean_mode_gap = modal_age - mean_age) %>%
+  arrange(desc(modal_age))
 
+age_comparison
+
+# Highlight the AG vs UMC comparison
+cat("\nAssemblies of God vs. United Methodist:\n")
+ag <- age_comparison %>% filter(trad == "Assemblies of God")
+umc <- age_comparison %>% filter(trad == "United Methodist")
+if (nrow(ag) > 0 & nrow(umc) > 0) {
+  cat("AG  - Mean:", ag$mean_age, ", Mode:", ag$modal_age, ", Gap:", ag$mean_mode_gap, "\n")
+  cat("UMC - Mean:", umc$mean_age, ", Mode:", umc$modal_age, ", Gap:", umc$mean_mode_gap, "\n")
+  cat("Mean age difference:", umc$mean_age - ag$mean_age, "years (UMC older)\n")
+}
 ```
 
-### Finding 3: Share of Baby Boomers by Denomination
+**Your interpretation:** Does the AG really have a higher modal age but lower mean age than the UMC? What does this tell us about the shape of their age distributions?
 
-**Article claim:** The article shows the share of each denomination's adults who are Baby Boomers (born 1946-1964). Mainline Protestant denominations tend to have the highest Boomer shares, while non-denominational and Pentecostal groups tend to be lower.
+## Finding 3: Share of Baby Boomers by Denomination
 
-Calculate the weighted share of Baby Boomers in each of the top 20 denominations.
+**Article claim:** About half of United Methodists and Episcopalians were born during the Baby Boomer window (1946-1964). For 16 of the 20 denominations, Boomers make up at least 40% of their adult membership. In the general U.S. adult population, Baby Boomers make up about 20%.
 
 ```{r}
-# Calculate the share of Baby Boomers (born 1946-1964) in each denomination
+# Calculate the weighted share of Baby Boomers (born 1946-1964) in each denomination
+boomer_shares <- cces %>%
+  filter(trad %in% top20) %>%
+  mutate(is_boomer = birthyr >= 1946 & birthyr <= 1964) %>%
+  group_by(trad) %>%
+  summarise(
+    boomer_pct = round(weighted.mean(is_boomer, weight, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(boomer_pct))
 
+boomer_shares
 
+# How many denominations have at least 40% Boomers?
+cat("\nDenominations with >= 40% Boomers:", sum(boomer_shares$boomer_pct >= 40), "of", nrow(boomer_shares), "\n")
+
+# What is the Boomer share among ALL respondents (general population)?
+general_boomer <- cces %>%
+  mutate(is_boomer = birthyr >= 1946 & birthyr <= 1964) %>%
+  summarise(boomer_pct = round(weighted.mean(is_boomer, weight, na.rm = TRUE) * 100, 1))
+cat("General population Boomer share:", general_boomer$boomer_pct, "%\n")
+
+# Key denominations
+cat("\nUnited Methodist Boomer share:", boomer_shares$boomer_pct[boomer_shares$trad == "United Methodist"], "%\n")
+if ("TEC" %in% boomer_shares$trad) {
+  cat("TEC Boomer share:", boomer_shares$boomer_pct[boomer_shares$trad == "TEC"], "%\n")
+}
 ```
 
-### Finding 4: "When Will Today's Adults Be Gone?" Death Timeline Projections
+**Your interpretation:** Does the data confirm that roughly half of mainline Protestants are Boomers? Are Boomers about twice as represented in these denominations compared to the general population?
 
-**Article claim:** Assuming that all adults live to 85, the article estimates the calendar year in which 30%, 40%, and 50% of each denomination's current adult members will have died. For example, Free Will Baptists won't lose 30% of their adult membership until 2048, and for the Assemblies of God that number is 2044. Mainline denominations like TEC, PCUSA, and ELCA hit those thresholds much sooner.
+## Finding 4: Share of Young Adults (18-29) and Episcopalian Age Skew
 
-For each respondent, calculate `years_left = max(0, 85 - age)`. Then for each denomination, find the weighted 30th, 40th, and 50th percentiles of `years_left` and add them to 2024 to get the projected calendar years.
+**Article claim:** Just 6% of Episcopalians and 6% of Southern Baptists are under the age of 30. For every young adult Episcopalian, there are about ten retirees. The Assemblies of God has 11% of members aged 18-29.
 
 ```{r}
-# Calculate the projected years when 30%, 40%, and 50% of current adults will have died
+# Calculate the percentage of members under 30 for each denomination
+young_adult_shares <- cces %>%
+  filter(trad %in% top20) %>%
+  mutate(
+    under_30 = age < 30,
+    over_60 = age >= 60
+  ) %>%
+  group_by(trad) %>%
+  summarise(
+    under_30_pct = round(weighted.mean(under_30, weight, na.rm = TRUE) * 100, 1),
+    over_60_pct = round(weighted.mean(over_60, weight, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  ) %>%
+  mutate(retiree_to_young_ratio = round(over_60_pct / under_30_pct, 1)) %>%
+  arrange(under_30_pct)
 
+young_adult_shares
 
+# Key comparisons
+cat("\nKey under-30 shares:\n")
+for (denom in c("TEC", "Southern Baptist", "Assemblies of God", "United Methodist")) {
+  val <- young_adult_shares %>% filter(trad == denom)
+  if (nrow(val) > 0) cat(denom, ": ", val$under_30_pct, "% under 30, ratio of retirees to young:", val$retiree_to_young_ratio, "\n")
+}
 ```
 
-### Finding 5: Assemblies of God vs. United Methodist Age Comparison
+**Your interpretation:** Does the data confirm just 6% of Episcopalians and Southern Baptists are under 30? Is the retiree-to-young-adult ratio really about 10:1 for Episcopalians?
 
-**Article claim:** The article highlights the Assemblies of God vs. the United Methodists as a key comparison. The AG has a higher modal age (69 vs. 67), yet the mean age for the AG is about seven years younger (54 vs. 61). This is because the AG has a substantial younger cohort that pulls the average down, while the UMC's age distribution is more uniformly old. The "beeswarm" plot shows the AG distribution has a wider spread with more younger members, while the UMC is more concentrated among older adults.
+## Finding 5: Percentage of Members Already Over 75
 
-Compare the full age distributions of these two denominations side by side: calculate median, mean, mode, standard deviation, and the share in each age bucket.
+**Article claim:** The article highlights that some denominations already have a significant share of members who are 75 or older, meaning a substantial portion of their membership will be gone within a decade. Mainline denominations like TEC, PCUSA, and ELCA have the highest shares of very old members.
 
 ```{r}
-# Compare the age distributions of Assemblies of God vs. United Methodist
+# Calculate the percentage of members aged 75+ for each denomination
+over_75 <- cces %>%
+  filter(trad %in% top20) %>%
+  mutate(is_over_75 = age >= 75) %>%
+  group_by(trad) %>%
+  summarise(
+    over_75_pct = round(weighted.mean(is_over_75, weight, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(over_75_pct))
 
+over_75
 
+# Compare to the general population
+general_over_75 <- cces %>%
+  mutate(is_over_75 = age >= 75) %>%
+  summarise(over_75_pct = round(weighted.mean(is_over_75, weight, na.rm = TRUE) * 100, 1))
+cat("\nGeneral population aged 75+:", general_over_75$over_75_pct, "%\n")
+
+# Which denominations have more than double the general population share?
+threshold <- general_over_75$over_75_pct * 2
+cat("Denominations with 75+ share more than double the general population (",
+    threshold, "%):\n")
+over_75 %>% filter(over_75_pct > threshold)
+
+# Assemblies of God vs United Methodist comparison
+cat("\nAssemblies of God 75+ share:", over_75$over_75_pct[over_75$trad == "Assemblies of God"], "%\n")
+cat("United Methodist 75+ share:", over_75$over_75_pct[over_75$trad == "United Methodist"], "%\n")
 ```
+
+**Your interpretation:** Which denominations have the highest share of members aged 75+? How does this compare to the general population? What does this tell us about which denominations face the most urgent demographic challenges?
 
 ## Summary
 
-Write a paragraph summarizing your findings. Were you able to replicate the article's key claims? What patterns held up? What limitations did you encounter with using only 2024 data instead of the combined 2022-2024 data used in the article?
+Write a paragraph summarizing your findings. Were you able to replicate the article's key claims? What patterns held up? What limitations did you encounter with using only 2024 data instead of the combined 2022-2024 data?
 
 ## Data Sources
 
-- Cooperative Election Study, 2024
-- Article: Burge, Ryan. "When Are Half Your Members Going to be Dead?" Graphs about Religion.
+-   Cooperative Election Study, 2024
+-   Article: Burge, Ryan. "When Are Half Your Members Going to be Dead?" Graphs about Religion.

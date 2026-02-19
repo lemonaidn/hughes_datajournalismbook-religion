@@ -14,7 +14,7 @@ options(scipen=999)
 
 In this reverse engineering assignment, you will analyze data from the Cooperative Election Study (CES) to reproduce key findings from Ryan Burge's article: ["Why Religion, Not Income, Predicts the American Vote"](https://www.graphsaboutreligion.com/p/why-religion-not-income-predicts).
 
-The article argues that religious identity is a far stronger predictor of how Americans vote than household income. Using data from the 2024 CES, Burge demonstrates that even when comparing people with identical incomes, their religious affiliation creates massive gaps in voting behavior. A copy of the article has been saved as an HTML file in this folder.
+The article argues that religious identity is a far stronger predictor of how Americans vote than household income. A copy of the article has been saved as an HTML file in this folder.
 
 ### Your Assignment
 
@@ -23,79 +23,201 @@ The article argues that religious identity is a far stronger predictor of how Am
 3. **Write your own code** to reproduce those key findings
 4. **Document your work** with clear comments explaining your analysis
 
-Your notebook should be well-organized, clearly commented, and demonstrate that you can independently reproduce data journalism findings. Think like a fact-checker: verify the claims made in the article.
-
 ## The Data
 
-The Cooperative Election Study (CES) is one of the largest academic surveys of American political behavior, surveying roughly 60,000 adults each year about their demographics, political attitudes, and voting behavior.
+The Cooperative Election Study (CES) surveys roughly 60,000 adults each year. The data file `ces_2024_religion.csv` contains:
 
-The data file `ces_2024_religion.rds` (also available as `ces_2024_religion.csv`) has been pre-processed from the CES 2024 Common Content and contains only the variables you need:
-
-- **weight**: Survey weight (use this for all calculations to get representative estimates)
+- **weight**: Survey weight (use this for all calculations)
 - **trad**: Broad religious tradition (e.g., "White Evangelical", "Jewish", "Atheist", "Black Protestant")
-- **income**: Household income on a 1-16 scale (see codebook below)
-- **pid7**: 7-point party identification scale (1=Strong Democrat, 4=Independent, 7=Strong Republican)
+- **income**: Household income on a 1-16 scale (1 = Less than $10,000 ... 16 = $500,000+)
+- **pid7**: 7-point party ID (1=Strong Democrat, 4=Independent, 7=Strong Republican)
 - **vote_2024**: 2024 presidential vote (1=Democrat/Harris, 2=Republican/Trump)
-- **race**: Race/ethnicity (1=White, 2=Black, 3=Hispanic, 4=Asian, 5=Native American, 6=Mixed, 7=Other, 8=Middle Eastern)
-- **educ**: Education level (1=No HS, 2=HS graduate, 3=Some college, 4=2-year, 5=4-year, 6=Post-grad)
+- **race**: Race/ethnicity (1=White, 2=Black, 3=Hispanic, etc.)
+- **educ**: Education level (1=No HS through 6=Post-grad)
 
-### Income Scale Codebook
-
-| Value | Income Range          |
-|-------|-----------------------|
-| 1     | Less than $10,000    |
-| 2     | $10,000 - $19,999   |
-| 3     | $20,000 - $29,999   |
-| 4     | $30,000 - $39,999   |
-| 5     | $40,000 - $49,999   |
-| 6     | $50,000 - $59,999   |
-| 7     | $60,000 - $69,999   |
-| 8     | $70,000 - $79,999   |
-| 9     | $80,000 - $99,999   |
-| 10    | $100,000 - $119,999 |
-| 11    | $120,000 - $149,999 |
-| 12    | $150,000 - $199,999 |
-| 13    | $200,000 - $249,999 |
-| 14    | $250,000 - $349,999 |
-| 15    | $350,000 - $499,999 |
-| 16    | $500,000 or more     |
-
-### Important Note on Survey Weights
-
-The CES is designed to be representative of the U.S. adult population. Like all surveys, some groups are over- or under-represented in the raw sample. The `weight` column adjusts for this.
-
-**You must use `weighted.mean()` instead of `mean()` when calculating averages and proportions.** The syntax is: `weighted.mean(variable, weight)`.
+**Important:** Use `weighted.mean()` instead of `mean()` for all calculations.
 
 ## Load Libraries and Data
 
 ```{r}
-# Load required libraries
 library(tidyverse)
 
-# Load the CES data
+ces <- read_csv("data/ces_2024_religion.csv")
 
-
+glimpse(ces)
 ```
 
-## Analysis
+## Finding 1: Average Income Varies Widely by Religious Tradition
 
-Now it's your turn. Read through Burge's article and identify the key facts and claims made. Then write well-commented code below to reproduce those findings using the CES data.
-
-Some questions to guide your work:
-- What does the article say about income differences across religious traditions?
-- What relationship (or lack thereof) does the article find between income and Republican identification across traditions?
-- What does the article show about voting patterns within income brackets for different religious groups?
-- What is the article's key claim about comparing people at the same income level but different religions?
-- What specific comparisons does the article make (e.g., Southern Baptists vs. atheists, Jewish Americans vs. White Evangelicals)?
-
-Structure your analysis with clear section headers and comments explaining what you're testing and what you found. Remember to use survey weights in all calculations.
+**Article claim:** Hindus report the highest average income (~$85,000). Jewish traditions and Episcopalians average above $75,000. Most Protestant traditions cluster around $50,000-$60,000.
 
 ```{r}
-# Your analysis code here
+# Calculate weighted mean income category by religious tradition
+# Note: the income variable is on a 1-16 scale, not dollar amounts
+# To approximate dollar amounts, you'd need to assign midpoints to each category
 
+income_by_trad <- ces %>%
+  group_by(trad) %>%
+  summarise(
+    n = n(),
+    avg_income_cat = round(weighted.mean(income, weight, na.rm = TRUE), 1),
+    .groups = "drop"
+  ) %>%
+  filter(n >= 250) %>%
+  arrange(desc(avg_income_cat))
+
+income_by_trad
 ```
 
-## Findings
+**Your interpretation:** Which religious traditions have the highest and lowest average income? How large are the gaps?
 
-Write a summary of your findings here. Did your analysis confirm what the article reported? Were there any discrepancies? What did you learn about the relationship between religion, income, and voting behavior in America?
+## Finding 2: Republican Identification Does Not Track with Income
 
+**Article claim:** Reform Jews have fewer than 20% Republican identification despite having some of the highest incomes. About 25% of Hindus identify as Republican. Nearly 75% of non-denominational Protestants are Republican despite having moderate incomes.
+
+```{r}
+# Calculate the percentage who identify as Republican (pid7 >= 5) by tradition
+republican_by_trad <- ces %>%
+  mutate(is_republican = pid7 >= 5) %>%
+  group_by(trad) %>%
+  summarise(
+    n = n(),
+    rep_pct = round(weighted.mean(is_republican, weight, na.rm = TRUE) * 100, 1),
+    avg_income_cat = round(weighted.mean(income, weight, na.rm = TRUE), 1),
+    .groups = "drop"
+  ) %>%
+  filter(n >= 250) %>%
+  arrange(desc(rep_pct))
+
+republican_by_trad
+
+# If income drove partisanship, high-income groups should be more Republican
+# Check the correlation
+cat("\nCorrelation between avg income and Republican %:",
+    round(cor(republican_by_trad$avg_income_cat, republican_by_trad$rep_pct), 2), "\n")
+```
+
+**Your interpretation:** Is there a strong relationship between income and Republican identification? Or does religion override income?
+
+## Finding 3: Trump Vote Among White Evangelicals by Income
+
+**Article claim:** Among White Evangelicals making under $40,000, about two-thirds (~67%) voted for Trump. Among those earning $80,000-$120,000, about 78% voted for Trump -- only a ~10 percentage point increase across a large income range.
+
+```{r}
+# Calculate Trump vote percentage by income bracket among White Evangelicals
+# Income categories: 1-4 roughly correspond to < $40k, 8-10 roughly to $80k-$120k
+
+sbc_by_income <- ces %>%
+  filter(trad == "White Evangelical", !is.na(vote_2024)) %>%
+  mutate(
+    voted_trump = vote_2024 == 2,
+    income_bracket = case_when(
+      income <= 4 ~ "Under $40k",
+      income <= 7 ~ "$40k-$70k",
+      income <= 10 ~ "$70k-$120k",
+      income <= 13 ~ "$120k-$250k",
+      income >= 14 ~ "$250k+",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(income_bracket)) %>%
+  group_by(income_bracket) %>%
+  summarise(
+    n = n(),
+    trump_pct = round(weighted.mean(voted_trump, weight, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  )
+
+sbc_by_income
+
+# What is the range from lowest to highest income bracket?
+cat("\nRange of Trump support across income brackets:",
+    max(sbc_by_income$trump_pct) - min(sbc_by_income$trump_pct), "percentage points\n")
+```
+
+**Your interpretation:** Does income make much difference in how White Evangelicals vote? Is the gap really only about 10 points?
+
+## Finding 4: The 60-Point Gap Between White Evangelicals and Atheists at Same Income
+
+**Article claim:** A White Evangelical and an atheist with the exact same income are separated by about 60 percentage points in their likelihood of voting Republican.
+
+```{r}
+# Compare Trump vote by income bracket for two very different religious traditions
+gap_analysis <- ces %>%
+  filter(trad %in% c("White Evangelical", "Atheist"), !is.na(vote_2024)) %>%
+  mutate(
+    voted_trump = vote_2024 == 2,
+    income_bracket = case_when(
+      income <= 5 ~ "Under $50k",
+      income <= 9 ~ "$50k-$100k",
+      income >= 10 ~ "$100k+",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(income_bracket)) %>%
+  group_by(trad, income_bracket) %>%
+  summarise(
+    n = n(),
+    trump_pct = round(weighted.mean(voted_trump, weight, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = trad, values_from = c(trump_pct, n))
+
+gap_analysis
+
+# Calculate the gap at each income level
+gap_analysis %>%
+  mutate(gap = `trump_pct_White Evangelical` - trump_pct_Atheist)
+```
+
+**Your interpretation:** Is the religion gap really about 60 points even when comparing people at the same income level?
+
+## Finding 5: White Evangelicals vs. Black Protestants - Maximum Religion Gap
+
+**Article claim:** White evangelicals give Trump over 80% support while Black Protestants give him under 10% -- a gap of over 70 percentage points that persists even when comparing people with the same household income.
+
+```{r}
+# Compare the two most extreme religious traditions
+extremes <- ces %>%
+  filter(trad %in% c("White Evangelical", "Black Protestant"), !is.na(vote_2024)) %>%
+  mutate(voted_trump = vote_2024 == 2) %>%
+  group_by(trad) %>%
+  summarise(
+    n = n(),
+    trump_pct = round(weighted.mean(voted_trump, weight, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  )
+
+extremes
+
+cat("\nGap:", extremes$trump_pct[extremes$trad == "White Evangelical"] -
+    extremes$trump_pct[extremes$trad == "Black Protestant"], "percentage points\n")
+
+# Now break it down by income to show the gap persists
+extremes_by_income <- ces %>%
+  filter(trad %in% c("White Evangelical", "Black Protestant"), !is.na(vote_2024)) %>%
+  mutate(
+    voted_trump = vote_2024 == 2,
+    income_bracket = case_when(
+      income <= 5 ~ "Under $50k",
+      income <= 9 ~ "$50k-$100k",
+      income >= 10 ~ "$100k+",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(income_bracket)) %>%
+  group_by(trad, income_bracket) %>%
+  summarise(
+    n = n(),
+    trump_pct = round(weighted.mean(voted_trump, weight, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  )
+
+extremes_by_income
+```
+
+**Your interpretation:** Does the gap between White evangelicals and Black Protestants persist at every income level? What does this tell us about religion vs. income as predictors of voting?
+
+## Summary
+
+Write a summary of your findings. Did your analysis confirm the article's central claim that religion is a stronger predictor of voting than income?

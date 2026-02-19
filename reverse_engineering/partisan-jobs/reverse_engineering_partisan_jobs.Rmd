@@ -14,31 +14,17 @@ options(scipen=999)
 
 In this reverse engineering assignment, you will analyze data from VRScores, a database that links workplaces with voting records, to reproduce key findings from Ryan Burge's article: ["The Most Republican Jobs in America? Start with the Church."](https://www.graphsaboutreligion.com/p/the-most-republican-jobs-in-america) published on his Substack newsletter "Graphs about Religion" on December 22, 2025.
 
-The article uses data from VRScores, which matched voter registration data (from a company called L2) with employment data (from Revelio Labs) to estimate the partisan composition of workers across more than 1,000 industries classified by NAICS codes. For states without closed primaries, the research team used prediction models to extend coverage.
+The article uses data from VRScores, which matched voter registration data (from a company called L2) with employment data (from Revelio Labs) to estimate the partisan composition of workers across more than 1,000 industries classified by NAICS codes.
 
 A copy of the article has been saved as an HTML file in this folder.
-
-### Your Assignment
-
-1. **Read the article carefully** and identify the key facts and figures the reporter presents
-2. **Examine the data** provided in the `data/` folder
-3. **Write your own code** to reproduce those key findings
-4. **Document your work** with clear comments explaining your analysis
-
-Your notebook should be well-organized, clearly commented, and demonstrate that you can independently reproduce data journalism findings.
 
 **Important note:** The article uses 2024 data as the most recent year, but our dataset covers 2012-2020. We will use 2020 as our most recent year. Your exact numbers will differ from the article's, but the patterns and relative rankings should be similar.
 
 ## The Data
 
-The data comes from VRScores and covers NAICS (North American Industry Classification System) industry codes from 2012 through 2020. Each row represents one industry in one year.
-
-You have one combined data file in the `data/` folder:
-
-- **naics_combined.csv**: A combined dataset of all years (2012-2020), with a `year` column added. Each row is an industry-year observation containing worker counts, partisan shares, and diversity metrics.
+The data comes from VRScores and covers NAICS industry codes from 2012 through 2020. Each row represents one industry in one year.
 
 Key variables include:
-
 - `naics_code`: The NAICS industry classification code
 - `naics_desc`: Text description of the industry
 - `employee_count`: Number of workers in that industry-year
@@ -46,130 +32,187 @@ Key variables include:
 - `overall_margin_imp`: Republican share minus Democratic share (positive = Republican lean)
 - `political_diversity_imp`: A diversity index (higher = more politically diverse)
 
-See `data/codebook.md` for the full variable dictionary.
-
 ## Load Libraries and Data
 
 ```{r}
-# Load required libraries
 library(tidyverse)
 
-# Load the combined dataset
 naics <- read_csv("data/naics_combined.csv")
-
-# Preview the data
 glimpse(naics)
 ```
 
-## Analysis
+## Finding 1: Religious Organizations Are the Most Republican Among Large Industries
 
-Now it's your turn. Read through the article and identify the key facts and claims made. Then write well-commented code below to reproduce those findings using the data provided.
-
-Some questions to guide your work:
-
-- What is the partisan lean of Religious Organizations (NAICS code 813110) compared to other large industries?
-- Among the 50 largest industries, which ones have the highest Republican share?
-- Which industries are most politically similar to religious organizations? Has that changed over time?
-- How does the partisan composition of religious organizations compare to other sectors when you look at only the largest employers?
-
-### Finding 1: Religious Organizations Have a Republican Lean Among Large Sectors
-
-**Article claim:** Among large employment sectors, religious organizations are the only group to the right of center, with Republicans outnumbering Democrats by about 7 percentage points. Higher education is the most left-leaning (about 32 points more Democratic).
-
-Using 2020 as our most recent year, compare the partisan lean (overall_margin_imp) of religious organizations (NAICS 813110) to the top 10 largest industries by employee count.
+**Article claim:** Among large employment sectors, religious organizations (NAICS 813110) are the only group to the right of center, with Republicans outnumbering Democrats by about 7 percentage points. Higher education is the most left-leaning (about 32 points more Democratic).
 
 ```{r}
 # Filter to 2020 data
+naics_2020 <- naics %>% filter(year == 2020)
 
+# Get the top 15 industries by employee count
+top_15 <- naics_2020 %>%
+  arrange(desc(employee_count)) %>%
+  slice_head(n = 15) %>%
+  select(naics_code, naics_desc, employee_count, democrat_pct_imp, republican_pct_imp, overall_margin_imp) %>%
+  arrange(overall_margin_imp)
 
-# Get the top 10 industries by employee count
+# Make sure religious organizations (813110) are included
+religious_org <- naics_2020 %>% filter(naics_code == 813110)
+cat("Religious Organizations (NAICS 813110):\n")
+cat("  Employee count:", format(religious_org$employee_count, big.mark = ","), "\n")
+cat("  Republican %:", round(religious_org$republican_pct_imp * 100, 1), "%\n")
+cat("  Democrat %:", round(religious_org$democrat_pct_imp * 100, 1), "%\n")
+cat("  Margin (R-D):", round(religious_org$overall_margin_imp * 100, 1), "points\n")
 
+# Show all top 15 with their margins
+top_15 %>%
+  mutate(
+    margin_pct = round(overall_margin_imp * 100, 1),
+    rep_pct = round(republican_pct_imp * 100, 1),
+    dem_pct = round(democrat_pct_imp * 100, 1)
+  ) %>%
+  select(naics_desc, employee_count, rep_pct, dem_pct, margin_pct) %>%
+  arrange(desc(margin_pct))
 
-# Make sure religious organizations (813110) are included in the comparison
-
-
-# Calculate partisan margins for these industries
-
+# How many of the top 15 lean Republican (positive margin)?
+cat("\nIndustries among top 15 that lean Republican:",
+    sum(top_15$overall_margin_imp > 0), "\n")
 ```
 
+**Your interpretation:** Is religious organizations the only large industry that leans Republican? How does it compare to higher education?
 
-### Finding 2: Religious Organizations Have the Highest Republican Share Among the 50 Largest Industries
+## Finding 2: Religious Organizations Have the Highest Republican Share Among the 50 Largest Industries
 
-**Article claim:** Looking at the 50 largest industries by total employees, religious organizations have the highest Republican share -- just below 50%. Commercial construction and real estate appraisal are close behind. The most Democratic-heavy large industries include internet services, clothing retail, media/streaming, and higher education.
-
-Using 2020 data, find the 50 largest industries and rank them by republican_pct_imp.
+**Article claim:** Looking at the 50 largest industries, religious organizations have the highest Republican share -- just below 50%. The most Democratic-heavy large industries include internet services, clothing retail, media/streaming, and higher education.
 
 ```{r}
-# Filter to 2020 data and get the 50 largest industries by employee_count
+# Get the 50 largest industries in 2020
+top_50 <- naics_2020 %>%
+  arrange(desc(employee_count)) %>%
+  slice_head(n = 50)
 
+# If religious orgs aren't in the top 50, add them
+if (!813110 %in% top_50$naics_code) {
+  top_50 <- bind_rows(top_50, religious_org)
+}
 
-# Select key columns and arrange by republican_pct_imp
+# Rank by Republican share
+top_50_ranked <- top_50 %>%
+  mutate(rep_pct = round(republican_pct_imp * 100, 1)) %>%
+  arrange(desc(rep_pct)) %>%
+  mutate(rank = row_number()) %>%
+  select(rank, naics_desc, employee_count, rep_pct)
 
+# Show top 10 most Republican
+cat("Top 10 most Republican industries (among 50 largest):\n")
+top_50_ranked %>% slice_head(n = 10)
 
-# Where does Religious Organizations rank?
+# Show top 10 most Democratic (bottom of Republican ranking)
+cat("\nTop 10 most Democratic industries (among 50 largest):\n")
+top_50_ranked %>% slice_tail(n = 10)
 
+# Where does religious organizations rank?
+rel_rank <- top_50_ranked %>% filter(str_detect(naics_desc, "[Rr]eligious"))
+cat("\nReligious Organizations rank:", rel_rank$rank, "of", nrow(top_50_ranked),
+    "with", rel_rank$rep_pct, "% Republican\n")
 ```
 
+**Your interpretation:** Do religious organizations have the highest Republican share among large industries? Is it close to 50%?
 
-### Finding 3: Industries Most Similar to Religious Organizations (2012 vs. 2020)
+## Finding 3: Partisan Lean of Religious Organizations Over Time
 
-**Article claim:** Using Euclidean distance based on Democratic %, Republican %, and political diversity, the industries most similar to religious organizations include real estate appraisers, aerospace instrument manufacturers, car dealers, insurance brokers, and engineers -- industries that tend to have high incomes or are heavily regulated.
-
-Calculate the Euclidean distance of each industry from religious organizations in both 2012 and 2020, based on three dimensions: democrat_pct_imp, republican_pct_imp, and political_diversity_imp. Find the 10 nearest neighbors.
-
-```{r}
-# Get the reference point: religious organizations in 2020
-
-
-# Calculate Euclidean distance for all other industries in 2020
-
-
-# Show the 10 most similar industries
-
-
-```
-
-```{r}
-# Repeat for 2012
-
-
-# Compare: which industries appear in both years' top-10 lists?
-
-```
-
-
-### Finding 4: Nearest Big-Industry Neighbors
-
-**Article claim:** When restricted to the top 100 largest industries by employment, the nearest partisan neighbors to religious organizations include engineering, insurance, real estate, and manufacturing sectors.
-
-Repeat the similarity analysis, but only among the 100 largest industries.
-
-```{r}
-# Filter 2020 data to the 100 largest industries
-
-
-# Get the religious organizations reference point
-
-
-# Calculate distances and find the 10 nearest neighbors among big industries
-
-```
-
-
-### Finding 5: Partisan Lean Has Shifted Over Time
-
-**Article claim:** The article compares 2012 and 2024 data to show how the partisan composition of industries near religious organizations has shifted.
-
-Compare the partisan lean of religious organizations in 2012 vs 2020. How has the overall_margin_imp changed? What about republican_pct_imp?
+**Article claim:** The article compares partisan compositions across time periods to show how industries' political leanings have shifted.
 
 ```{r}
 # Compare religious organizations across all available years
+religious_over_time <- naics %>%
+  filter(naics_code == 813110) %>%
+  select(year, employee_count, democrat_pct_imp, republican_pct_imp, overall_margin_imp) %>%
+  mutate(
+    dem_pct = round(democrat_pct_imp * 100, 1),
+    rep_pct = round(republican_pct_imp * 100, 1),
+    margin = round(overall_margin_imp * 100, 1)
+  )
 
+religious_over_time %>% select(year, employee_count, dem_pct, rep_pct, margin)
 
 # How has the margin changed from 2012 to 2020?
-
+margin_2012 <- religious_over_time$margin[religious_over_time$year == 2012]
+margin_2020 <- religious_over_time$margin[religious_over_time$year == 2020]
+cat("\nMargin change from 2012 to 2020:", margin_2020 - margin_2012, "points\n")
+cat("2012 margin:", margin_2012, "\n")
+cat("2020 margin:", margin_2020, "\n")
 ```
 
+**Your interpretation:** Has the Republican lean of religious organizations grown, shrunk, or stayed stable over time?
+
+## Finding 4: How Many Industries Lean Republican vs. Democratic?
+
+**Article claim:** The article emphasizes that religious organizations are an outlier -- most large industries lean Democratic. Among the biggest employers, the church stands nearly alone on the right side of the partisan divide.
+
+```{r}
+# Among the top 50 largest industries in 2020, how many lean R vs D?
+top_50_lean <- naics_2020 %>%
+  arrange(desc(employee_count)) %>%
+  slice_head(n = 50) %>%
+  mutate(lean = case_when(
+    overall_margin_imp > 0 ~ "Republican",
+    overall_margin_imp < 0 ~ "Democratic",
+    TRUE ~ "Even"
+  ))
+
+cat("Among the 50 largest industries in 2020:\n")
+top_50_lean %>% count(lean)
+
+# What percentage lean Republican?
+n_rep <- sum(top_50_lean$lean == "Republican")
+cat("\nRepublican-leaning:", n_rep, "of 50 (", round(n_rep / 50 * 100, 0), "%)\n")
+cat("Democratic-leaning:", sum(top_50_lean$lean == "Democratic"), "of 50\n")
+
+# What is the average margin among these top 50?
+cat("\nAverage margin (top 50):", round(mean(top_50_lean$overall_margin_imp) * 100, 1), "points (negative = Dem lean)\n")
+```
+
+**Your interpretation:** Are most large industries Democratic-leaning? How unusual is it for religious organizations to lean Republican?
+
+## Finding 5: Political Diversity of Religious Organizations vs. Other Industries
+
+**Article claim:** The article notes that religious organizations are not only partisan but also have relatively low political diversity compared to many other industries.
+
+```{r}
+# Compare the political diversity of religious organizations to the average
+avg_diversity <- naics_2020 %>%
+  summarise(avg = mean(political_diversity_imp, na.rm = TRUE)) %>%
+  pull(avg)
+
+rel_diversity <- naics_2020 %>%
+  filter(naics_code == 813110) %>%
+  pull(political_diversity_imp)
+
+cat("Religious Orgs political diversity score:", round(rel_diversity, 3), "\n")
+cat("Average across all industries:", round(avg_diversity, 3), "\n")
+cat("Religious Orgs vs. average:", ifelse(rel_diversity > avg_diversity, "More diverse", "Less diverse"), "\n")
+
+# Where does religious organizations rank in political diversity among top 50?
+top_50_diversity <- naics_2020 %>%
+  arrange(desc(employee_count)) %>%
+  slice_head(n = 50) %>%
+  arrange(desc(political_diversity_imp)) %>%
+  mutate(diversity_rank = row_number()) %>%
+  select(naics_desc, political_diversity_imp, diversity_rank)
+
+rel_div_rank <- top_50_diversity %>% filter(str_detect(naics_desc, "[Rr]eligious"))
+cat("\nAmong top 50 industries, religious orgs rank", rel_div_rank$diversity_rank, "in political diversity\n")
+
+# Show the 5 most and 5 least politically diverse large industries
+cat("\n5 most politically diverse (among top 50):\n")
+top_50_diversity %>% slice_head(n = 5)
+
+cat("\n5 least politically diverse (among top 50):\n")
+top_50_diversity %>% slice_tail(n = 5)
+```
+
+**Your interpretation:** Are religious organizations more or less politically diverse than the typical large industry? What does low political diversity mean in practice?
 
 ## Summary
 

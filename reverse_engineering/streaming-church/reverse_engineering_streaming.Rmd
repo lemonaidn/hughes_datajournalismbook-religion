@@ -1,6 +1,6 @@
 ---
-title: "Reverse Engineering: Streaming Church - ANSWER KEY"
-author: "Instructor"
+title: "Reverse Engineering: Streaming Church"
+author: "Student Name"
 date: "2026-02-14"
 output: html_document
 ---
@@ -12,29 +12,47 @@ options(scipen=999)
 
 ## Introduction
 
-This is the answer key for the streaming church reverse engineering assignment. Students should read Ryan Burge's article "The People Streaming Church Aren't Who You Think" and identify key claims to reproduce. Below are 5 reproducible findings with complete code solutions.
+In this reverse engineering assignment, you will analyze data from the Pew Religious Landscape Study to reproduce key findings from Ryan Burge's article: ["The People Streaming Church Aren't Who You Think"](https://www.graphsaboutreligion.com/p/the-people-streaming-church-arent) published on his Substack newsletter "Graphs about Religion."
+
+The article examines who attends religious services online vs. in-person, revealing surprising patterns related to education, income, race, and generation. A copy of the article has been saved as an HTML file in this folder.
+
+### Your Assignment
+
+1. **Read the article carefully** and identify the key facts and figures the reporter presents
+2. **Examine the data** provided in the `data/` folder
+3. **Write your own code** to reproduce those key findings
+4. **Document your work** with clear comments explaining your analysis
+
+## The Data
+
+The data comes from the Pew Religious Landscape Study and contains about 37,000 respondents. Each row is a survey respondent.
+
+Key variables:
+- `weight`: Survey weight for representative estimates
+- `attndperrls`: In-person attendance frequency (1-2 = weekly+, 3-4 = occasionally, 5 = seldom, 6 = never)
+- `attndonrls`: Online attendance frequency (same coding)
+- `educrec`: Education level (1 = HS or less, 3 = some college/bachelor's, 4 = post-grad)
+- `inc_sdt1`: Income category (1-3 = < $50k, 4-5 = $50k-$100k, 6-8 = $100k+)
+- `hisp`: Hispanic identification (1 = yes, 2 = no)
+- `racecmb`: Race (1 = White, 2 = Black, 3 = Asian, 4-5 = Other)
+- `gender`: Gender (1 = male, 2 = female)
+- `birthdecade`: Birth decade (1 = 1940s through 7 = 2000s)
 
 ## Load Libraries and Data
 
 ```{r}
-# Load required libraries
 library(tidyverse)
 
-# Load the RLS streaming data
 rls <- read_csv("data/rls_streaming.csv")
-
-# Preview the data
 glimpse(rls)
 ```
 
 ## Finding 1: Education Gap in In-Person vs. Online Attendance
 
-**Article Claim:** The article shows that college-educated Americans attend in-person services at lower rates than those with high school or less education, but the pattern reverses for online attendance - college graduates stream services at higher rates.
+**Article claim:** Those with a high school education or less attend in-person services at higher rates (~25%) than college graduates (~19-20%). But the pattern reverses for online attendance -- college graduates stream services at higher rates (~17%) than those with HS or less (~13-14%).
 
 ```{r}
-# Create education categories (combining college grad and postgrad)
-# Create weekly attendance indicators for both modes
-
+# Create education categories and weekly attendance indicators
 education_attendance <- rls %>%
   mutate(
     educ2 = case_when(
@@ -42,7 +60,6 @@ education_attendance <- rls %>%
       educrec %in% c(3, 4) ~ "College",
       TRUE ~ NA_character_
     ),
-    # Weekly = attending once a week or more (codes 1-2)
     in_person_weekly = attndperrls %in% c(1, 2),
     online_weekly = attndonrls %in% c(1, 2)
   ) %>%
@@ -54,141 +71,100 @@ education_attendance <- rls %>%
     .groups = "drop"
   )
 
-education_attendance
+education_attendance %>%
+  mutate(
+    in_person_pct = round(in_person_pct * 100, 1),
+    online_pct = round(online_pct * 100, 1)
+  )
 
 # Calculate the gaps
-in_person_gap <- education_attendance %>%
-  pivot_wider(names_from = educ2, values_from = in_person_pct) %>%
-  mutate(gap = `HS or Less` - College)
+cat("\nIn-person gap (HS or Less minus College):",
+    round((education_attendance$in_person_pct[education_attendance$educ2 == "HS or Less"] -
+           education_attendance$in_person_pct[education_attendance$educ2 == "College"]) * 100, 1),
+    "percentage points\n")
 
-online_gap <- education_attendance %>%
-  pivot_wider(names_from = educ2, values_from = online_pct) %>%
-  mutate(gap = College - `HS or Less`)
-
-cat("\nIn-person attendance:\n")
-cat("HS or Less:", round(in_person_gap$`HS or Less` * 100, 1), "%\n")
-cat("College:", round(in_person_gap$College * 100, 1), "%\n")
-cat("Gap:", round(in_person_gap$gap * 100, 1), "percentage points (HS or Less higher)\n")
-
-cat("\nOnline attendance:\n")
-cat("HS or Less:", round(online_gap$`HS or Less` * 100, 1), "%\n")
-cat("College:", round(online_gap$College * 100, 1), "%\n")
-cat("Gap:", round(online_gap$gap * 100, 1), "percentage points (College higher)\n")
-```
-
-**Finding:** Among those with high school or less education, about 24-25% attend in-person services weekly, compared to about 19-20% of college graduates - a gap of approximately 5 percentage points. However, for online attendance, college graduates (approximately 16-17%) attend at higher rates than those with high school or less (approximately 13-14%), reversing the pattern by about 3 percentage points.
-
-## Finding 2: Generational Patterns in In-Person Attendance
-
-**Article Claim:** The article shows declining in-person attendance across younger generations, with the steepest drops among college-educated Americans in more recent birth cohorts.
-
-```{r}
-# Analyze in-person weekly attendance by birth decade and education
-generational_attendance <- rls %>%
-  mutate(
-    educ2 = case_when(
-      educrec == 1 ~ "HS or Less",
-      educrec %in% c(3, 4) ~ "College",
-      TRUE ~ NA_character_
-    ),
-    birth_decade = case_when(
-      birthdecade == 1 ~ "1940s",
-      birthdecade == 2 ~ "1950s",
-      birthdecade == 3 ~ "1960s",
-      birthdecade == 4 ~ "1970s",
-      birthdecade == 5 ~ "1980s",
-      birthdecade == 6 ~ "1990s",
-      birthdecade == 7 ~ "2000s",
-      TRUE ~ NA_character_
-    ),
-    in_person_weekly = attndperrls %in% c(1, 2)
-  ) %>%
-  filter(!is.na(educ2), !is.na(birth_decade)) %>%
-  group_by(birth_decade, educ2) %>%
-  summarise(
-    in_person_pct = weighted.mean(in_person_weekly, weight, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  pivot_wider(names_from = educ2, values_from = in_person_pct)
-
-generational_attendance
-
-# Compare 1940s to 2000s for college-educated
-college_decline <- generational_attendance %>%
-  filter(birth_decade %in% c("1940s", "2000s")) %>%
-  select(birth_decade, College)
-
-cat("\nCollege-educated in-person weekly attendance:\n")
-cat("1940s:", round(college_decline$College[college_decline$birth_decade == "1940s"] * 100, 1), "%\n")
-cat("2000s:", round(college_decline$College[college_decline$birth_decade == "2000s"] * 100, 1), "%\n")
-cat("Decline:", round((college_decline$College[college_decline$birth_decade == "1940s"] -
-                       college_decline$College[college_decline$birth_decade == "2000s"]) * 100, 1),
+cat("Online gap (College minus HS or Less):",
+    round((education_attendance$online_pct[education_attendance$educ2 == "College"] -
+           education_attendance$online_pct[education_attendance$educ2 == "HS or Less"]) * 100, 1),
     "percentage points\n")
 ```
 
-**Finding:** In-person weekly attendance among college-educated Americans drops dramatically across generations. Those born in the 1940s attend at rates around 27-28%, while those born in the 2000s attend at only about 11-12% - a decline of approximately 15-16 percentage points across six decades.
+**Your interpretation:** Does the data confirm that less-educated Americans attend in-person more, but college-educated Americans stream more?
 
-## Finding 3: The Heatmap Pattern - Most People Never Attend Either Mode
+## Finding 2: The "Never/Never" Group - Most People Never Attend Either Way
 
-**Article Claim:** The article's heatmap shows that the largest group of Americans never attend services either in-person or online, particularly among college-educated respondents.
+**Article claim:** The largest group of Americans never attends services either in-person or online. Among college-educated Americans, approximately 35-37% never attend in either mode, compared to about 28-30% of those with HS or less.
 
 ```{r}
-# Create 4-category attendance variables for both modes
-# Focus on the "Never" category (code 6)
-heatmap_data <- rls %>%
+# Calculate percentages for the "Never/Never" combination by education
+never_never <- rls %>%
   mutate(
     educ2 = case_when(
       educrec == 1 ~ "HS or Less",
       educrec %in% c(3, 4) ~ "College",
       TRUE ~ NA_character_
     ),
-    in_person4 = case_when(
-      attndperrls %in% c(1, 2) ~ "Weekly",
-      attndperrls %in% c(3, 4) ~ "Occasionally",
-      attndperrls == 5 ~ "Seldom",
-      attndperrls == 6 ~ "Never",
-      TRUE ~ NA_character_
-    ),
-    online4 = case_when(
-      attndonrls %in% c(1, 2) ~ "Weekly",
-      attndonrls %in% c(3, 4) ~ "Occasionally",
-      attndonrls == 5 ~ "Seldom",
-      attndonrls == 6 ~ "Never",
-      TRUE ~ NA_character_
-    )
+    never_in_person = attndperrls == 6,
+    never_online = attndonrls == 6,
+    never_either = never_in_person & never_online
   ) %>%
-  filter(!is.na(educ2), !is.na(in_person4), !is.na(online4))
-
-# Calculate percentages for each combination
-heatmap_percentages <- heatmap_data %>%
-  group_by(educ2, in_person4, online4) %>%
-  summarise(n = sum(weight, na.rm = TRUE), .groups = "drop") %>%
+  filter(!is.na(educ2)) %>%
   group_by(educ2) %>%
-  mutate(pct = n / sum(n)) %>%
-  ungroup()
+  summarise(
+    never_either_pct = weighted.mean(never_either, weight, na.rm = TRUE),
+    never_in_person_pct = weighted.mean(never_in_person, weight, na.rm = TRUE),
+    never_online_pct = weighted.mean(never_online, weight, na.rm = TRUE),
+    .groups = "drop"
+  )
 
-# Find the "Never/Never" combination for each education group
-never_never <- heatmap_percentages %>%
-  filter(in_person4 == "Never", online4 == "Never") %>%
-  arrange(educ2)
-
-never_never
+never_never %>%
+  mutate(across(where(is.numeric), ~ round(. * 100, 1)))
 
 cat("\nPercentage who never attend either in-person or online:\n")
-for (i in 1:nrow(never_never)) {
-  cat(never_never$educ2[i], ":", round(never_never$pct[i] * 100, 1), "%\n")
-}
+cat("HS or Less:", round(never_never$never_either_pct[never_never$educ2 == "HS or Less"] * 100, 1), "%\n")
+cat("College:", round(never_never$never_either_pct[never_never$educ2 == "College"] * 100, 1), "%\n")
 ```
 
-**Finding:** The "Never/Never" combination - people who never attend services either in-person or online - represents the single largest group. Among college-educated Americans, approximately 35-37% never attend services in either mode, compared to about 28-30% of those with high school or less education.
+**Your interpretation:** Is the "never attend anything" group really the largest single category? Are college-educated Americans more likely to fall into this group?
 
-## Finding 4: Income Does Not Mitigate the Education Gap in Online Attendance
+## Finding 3: Combined Weekly Attendance (In-Person or Online) by Education
 
-**Article Claim:** The article shows that even when controlling for income, college-educated Americans still stream services at higher rates than those with less education, suggesting the gap is about education itself, not just income.
+**Article claim:** Among those with a high school diploma, about 34% attend either in person or online weekly or more. Among those with a bachelor's degree, about 30% attend either mode weekly.
+
+```{r}
+# Calculate percentage attending weekly in EITHER mode by education
+combined_weekly <- rls %>%
+  mutate(
+    educ2 = case_when(
+      educrec == 1 ~ "HS or Less",
+      educrec %in% c(3, 4) ~ "College",
+      TRUE ~ NA_character_
+    ),
+    in_person_weekly = attndperrls %in% c(1, 2),
+    online_weekly = attndonrls %in% c(1, 2),
+    either_weekly = in_person_weekly | online_weekly
+  ) %>%
+  filter(!is.na(educ2)) %>%
+  group_by(educ2) %>%
+  summarise(
+    in_person_only = round(weighted.mean(in_person_weekly & !online_weekly, weight, na.rm = TRUE) * 100, 1),
+    online_only = round(weighted.mean(!in_person_weekly & online_weekly, weight, na.rm = TRUE) * 100, 1),
+    both_weekly = round(weighted.mean(in_person_weekly & online_weekly, weight, na.rm = TRUE) * 100, 1),
+    either_weekly = round(weighted.mean(either_weekly, weight, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  )
+
+combined_weekly
+```
+
+**Your interpretation:** Does the data show about 34% of HS-or-less and 30% of college grads attending weekly in either mode?
+
+## Finding 4: Income Does Not Explain the Education Gap in Online Attendance
+
+**Article claim:** Even when controlling for income, college-educated Americans still stream services at higher rates than those with less education at every income level. The education gap persists across income brackets.
 
 ```{r}
 # Analyze online attendance by education and income
-# Create 3 income categories
 income_education_online <- rls %>%
   mutate(
     educ2 = case_when(
@@ -207,100 +183,66 @@ income_education_online <- rls %>%
   filter(!is.na(educ2), !is.na(income3)) %>%
   group_by(educ2, income3) %>%
   summarise(
-    online_pct = weighted.mean(online_weekly, weight, na.rm = TRUE),
+    online_pct = round(weighted.mean(online_weekly, weight, na.rm = TRUE) * 100, 1),
     .groups = "drop"
-  )
-
-income_education_online
-
-# Compare college vs HS or Less at each income level
-income_comparison <- income_education_online %>%
+  ) %>%
   pivot_wider(names_from = educ2, values_from = online_pct) %>%
   mutate(college_advantage = College - `HS or Less`)
 
-income_comparison
+income_education_online
 
 cat("\nCollege advantage in online attendance by income level:\n")
-for (i in 1:nrow(income_comparison)) {
-  cat(income_comparison$income3[i], ":",
-      round(income_comparison$college_advantage[i] * 100, 1),
-      "percentage points\n")
+for (i in 1:nrow(income_education_online)) {
+  cat(income_education_online$income3[i], ":",
+      income_education_online$college_advantage[i], "percentage points\n")
 }
 ```
 
-**Finding:** At every income level, college-educated Americans stream services at higher rates than those with high school or less education. The college advantage persists across income brackets: approximately 3-4 percentage points among those earning less than $50k, 3-4 points among those earning $50k-$100k, and 2-3 points among those earning $100k+. Income does not eliminate the education gap.
+**Your interpretation:** Does the college advantage in online attendance persist at every income level? Does income explain the education gap?
 
-## Finding 5: Black Americans Show Distinct Attendance Patterns
+## Finding 5: Black Americans Attend at Higher Rates in Both Modes
 
-**Article Claim:** The article shows that Black Americans, regardless of education level, attend both in-person and online services at higher rates than other racial groups.
+**Article claim:** Black Americans, regardless of education level, attend both in-person and online services at substantially higher rates than White Americans. College-educated Black Americans attend in-person at about 30-32% and online at about 25-27%, roughly double the rates for White Americans.
 
 ```{r}
 # Analyze attendance by race and education
-# Create race categories combining with Hispanic identification
-race_education_attendance <- rls %>%
+race_attendance <- rls %>%
   mutate(
     educ2 = case_when(
       educrec == 1 ~ "HS or Less",
       educrec %in% c(3, 4) ~ "College",
       TRUE ~ NA_character_
     ),
-    race6 = case_when(
+    race_cat = case_when(
       hisp == 1 ~ "Hispanic",
       hisp == 2 & racecmb == 1 ~ "White",
       hisp == 2 & racecmb == 2 ~ "Black",
-      hisp == 2 & racecmb == 3 ~ "Asian",
-      hisp == 2 & racecmb %in% c(4, 5) ~ "Other",
       TRUE ~ NA_character_
     ),
     in_person_weekly = attndperrls %in% c(1, 2),
     online_weekly = attndonrls %in% c(1, 2)
   ) %>%
-  filter(!is.na(educ2), !is.na(race6)) %>%
-  group_by(race6, educ2) %>%
+  filter(!is.na(educ2), !is.na(race_cat)) %>%
+  group_by(race_cat, educ2) %>%
   summarise(
-    in_person_pct = weighted.mean(in_person_weekly, weight, na.rm = TRUE),
-    online_pct = weighted.mean(online_weekly, weight, na.rm = TRUE),
+    in_person_pct = round(weighted.mean(in_person_weekly, weight, na.rm = TRUE) * 100, 1),
+    online_pct = round(weighted.mean(online_weekly, weight, na.rm = TRUE) * 100, 1),
     .groups = "drop"
   )
 
-race_education_attendance
+race_attendance
 
-# Focus on Black Americans compared to White Americans
-black_white_comparison <- race_education_attendance %>%
-  filter(race6 %in% c("Black", "White")) %>%
-  arrange(educ2, race6)
-
-black_white_comparison
-
-cat("\nWeekly attendance rates - College educated:\n")
-cat("Black - In-person:",
-    round(black_white_comparison$in_person_pct[black_white_comparison$race6 == "Black" &
-                                                 black_white_comparison$educ2 == "College"] * 100, 1),
-    "%\n")
-cat("White - In-person:",
-    round(black_white_comparison$in_person_pct[black_white_comparison$race6 == "White" &
-                                                 black_white_comparison$educ2 == "College"] * 100, 1),
-    "%\n")
-cat("Black - Online:",
-    round(black_white_comparison$online_pct[black_white_comparison$race6 == "Black" &
-                                              black_white_comparison$educ2 == "College"] * 100, 1),
-    "%\n")
-cat("White - Online:",
-    round(black_white_comparison$online_pct[black_white_comparison$race6 == "White" &
-                                              black_white_comparison$educ2 == "College"] * 100, 1),
-    "%\n")
+# Focus on Black vs White comparison among college-educated
+cat("\nCollege-educated weekly attendance rates:\n")
+bw_college <- race_attendance %>% filter(educ2 == "College", race_cat %in% c("Black", "White"))
+for (i in 1:nrow(bw_college)) {
+  cat(bw_college$race_cat[i], "- In-person:", bw_college$in_person_pct[i], "%,",
+      "Online:", bw_college$online_pct[i], "%\n")
+}
 ```
 
-**Finding:** Among college-educated Americans, Black respondents attend religious services at substantially higher rates than White respondents in both modes. For in-person weekly attendance, college-educated Black Americans attend at approximately 30-32% compared to about 16-18% for White Americans. For online attendance, college-educated Black Americans stream at about 25-27% compared to about 14-16% for White Americans - roughly double the rate in both cases.
+**Your interpretation:** Does the data confirm that Black Americans attend at substantially higher rates in both modes? How large are the gaps?
 
 ## Summary
 
-These five findings demonstrate the article's key insights:
-
-1. **The education reversal**: Less-educated Americans attend in-person more, but college-educated Americans stream more
-2. **Generational decline**: In-person attendance has dropped dramatically across generations, especially among the college-educated
-3. **The never-attend majority**: The largest single group never attends services in either mode, particularly among college graduates
-4. **Income doesn't explain it**: The education gap in online attendance persists at all income levels
-5. **Race matters significantly**: Black Americans attend at much higher rates in both modes, regardless of education level
-
-All findings use survey weights (`weight` column) to produce nationally representative estimates.
+Write a summary of how these five findings demonstrate the article's key insight: the relationship between education and religious attendance is more complex than a simple "more education = less religion" story. The online/streaming dimension reveals patterns that challenge conventional assumptions.

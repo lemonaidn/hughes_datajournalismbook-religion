@@ -14,7 +14,7 @@ options(scipen=999)
 
 In this reverse engineering assignment, you will analyze data from the Assemblies of God (AG) denominational statistical reports to reproduce key findings from Ryan Burge's article: ["The Assemblies of God in 2024"](https://www.graphsaboutreligion.com/p/the-assemblies-of-god-in-2024) published on his Substack newsletter "Graphs about Religion."
 
-The article examines the health of the Assemblies of God denomination across multiple metrics: membership trends over time, worship attendance patterns, the impact of COVID-19 on attendance (including a linear projection model), conversion and baptism inflows, and the changing racial composition of the denomination.
+The article examines the health of the Assemblies of God denomination across multiple metrics: membership trends over time, worship attendance patterns, conversion and baptism inflows, and the changing racial composition of the denomination.
 
 A copy of the article has been saved as an HTML file in this folder.
 
@@ -35,7 +35,7 @@ The data comes from the AG's denominational statistical reports, which the denom
 
 - **`ag_membership.csv`**: Total AG membership by year from 1975-2024. Columns: `year`, `members`.
 - **`ag_attendance.csv`**: Weekly in-person worship attendance by year from 1978-2024. Columns: `year`, `attendance`.
-- **`ag_race.csv`**: Racial composition of AG adherents for selected years. Columns: `year`, `white`, `black`, `hispanic`, `asian_pacific`, `native_american`, `other_mixed`, `total`. Values are proportions (0 to 1).
+- **`ag_race.csv`**: Racial composition of AG adherents for selected years. Columns: `year`, `white`, `black`, `hispanic`, `asian_pacific`, `native_american`, `other_mixed`, `total`.
 - **`ag_conversions.csv`**: Conversion inflows from 2020-2024 broken down by type. Columns: `year`, `water_baptisms`, `spirit_baptisms`, `other`, `total`.
 
 ## Load Libraries and Data
@@ -57,67 +57,168 @@ glimpse(race)
 glimpse(conversions)
 ```
 
-## Analysis
+## Finding 1: Peak Membership and the COVID Drop
 
-### Finding 1: AG Membership Peaked Before the Pandemic and Has Not Fully Recovered
-
-**Article claim:** AG membership has risen in a remarkably steady way since 1975, climbing from about 1 million to a peak of about 3.3 million in 2019. COVID caused a loss of roughly 330,000 members in a single year (2020), wiping out more than twice the gains from 2014-2019. The current total (2024) sits at 3,059,461 — just slightly above the 3.04 million the AG reported in 2011. The recovery is underway but not yet complete.
-
-Using the membership data, calculate the peak membership and year it occurred, the size of the 2020 membership drop, the net change from 2014-2019 (to confirm the pandemic wiped out more than twice those gains), and compare the 2024 total to 2011.
+**Article claim:** AG membership peaked in 2019 at about 3.3 million members. COVID caused a loss of roughly 330,000 members in a single year (2020). The 2024 total sits at 3,059,461 -- just slightly above the 3.04 million the AG reported in 2011.
 
 ```{r}
-# Calculate key membership milestones
+# Find the peak membership year and value
+peak <- membership %>% filter(members == max(members))
+cat("Peak membership year:", peak$year, "\n")
+cat("Peak membership:", format(peak$members, big.mark = ","), "\n")
 
+# Calculate the 2020 membership drop
+members_2019 <- membership %>% filter(year == 2019) %>% pull(members)
+members_2020 <- membership %>% filter(year == 2020) %>% pull(members)
+covid_drop <- members_2019 - members_2020
+cat("\n2019 membership:", format(members_2019, big.mark = ","), "\n")
+cat("2020 membership:", format(members_2020, big.mark = ","), "\n")
+cat("COVID drop:", format(covid_drop, big.mark = ","), "\n")
 
+# Compare 2024 to 2011
+members_2024 <- membership %>% filter(year == 2024) %>% pull(members)
+members_2011 <- membership %>% filter(year == 2011) %>% pull(members)
+cat("\n2024 membership:", format(members_2024, big.mark = ","), "\n")
+cat("2011 membership:", format(members_2011, big.mark = ","), "\n")
+cat("2024 is", format(members_2024 - members_2011, big.mark = ","), "more than 2011\n")
+
+# The net change from 2014-2019 (to confirm the pandemic wiped out more than twice those gains)
+members_2014 <- membership %>% filter(year == 2014) %>% pull(members)
+gain_2014_2019 <- members_2019 - members_2014
+cat("\nGains from 2014-2019:", format(gain_2014_2019, big.mark = ","), "\n")
+cat("COVID drop was", round(covid_drop / gain_2014_2019, 1), "times the 2014-2019 gains\n")
 ```
 
-### Finding 2: Attendance-to-Membership Ratio and the COVID Impact
+**Your interpretation:** Does the data confirm a peak around 3.3 million in 2019, a ~330,000 member loss in 2020, and a 2024 total near the 2011 level?
 
-**Article claim:** The article examines the ratio of weekly in-person worship attendance to total membership. In 1979, 72% of members attended worship. That ratio dropped to 63% by 2018, plunged to 54% during the pandemic low, and has recovered to about 64% in 2024. This ratio provides insight into how engaged the membership is — not just how many people are on the rolls.
+## Finding 2: Attendance-to-Membership Ratio Over Time
 
-Join the membership and attendance data, calculate the attendance-to-membership ratio for overlapping years, and identify the key ratio values mentioned in the article.
+**Article claim:** In 1979, 72% of members attended worship. That ratio dropped to 63% by 2018, plunged to 54% during the pandemic low, and has recovered to about 64% in 2024.
 
 ```{r}
-# Calculate the attendance-to-membership ratio
+# Join membership and attendance data to calculate the ratio
+ratio <- membership %>%
+  inner_join(attendance, by = "year") %>%
+  mutate(ratio = attendance / members)
 
+# Look at the specific years mentioned in the article
+key_years <- ratio %>%
+  filter(year %in% c(1979, 2018, 2020, 2021, 2024))
 
+key_years %>%
+  select(year, members, attendance, ratio) %>%
+  mutate(ratio_pct = round(ratio * 100, 1))
+
+# Find the lowest ratio (pandemic low)
+lowest <- ratio %>% filter(ratio == min(ratio))
+cat("\nLowest ratio year:", lowest$year, "at", round(lowest$ratio * 100, 1), "%\n")
+
+# 1979 ratio
+cat("1979 ratio:", round(ratio$ratio[ratio$year == 1979] * 100, 1), "%\n")
+cat("2018 ratio:", round(ratio$ratio[ratio$year == 2018] * 100, 1), "%\n")
+cat("2024 ratio:", round(ratio$ratio[ratio$year == 2024] * 100, 1), "%\n")
 ```
 
-### Finding 3: Linear Projection Model Shows COVID Gap Closing by ~2029-2030
+**Your interpretation:** Does the data confirm the ratios mentioned in the article? What does the trend in this ratio suggest about member engagement?
 
-**Article claim:** The article fits a linear trend line to 2009-2019 attendance data and projects it forward through 2024 to estimate what attendance would have been without COVID. Key findings: in 2020 actual attendance lagged the projection by about 300,000 (nearly 15% below trend); by 2021 the gap widened to ~400,000 (19.2% below); but by 2024 the gap had narrowed to about 173,000 (8.1% below). If the current recovery trajectory holds, the AG will have completely erased the COVID-era decline by around 2029 or 2030.
+## Finding 3: 2024 Was a Banner Year for Conversions
 
-Fit a linear model (`lm()`) to 2009-2019 attendance data. Predict attendance for 2009-2024. Calculate the absolute and percentage gaps between actual and projected attendance for 2020-2024. Then fit a trend line to the post-2020 gap to estimate when it reaches zero.
+**Article claim:** Total conversion inflows reached about 530,000 in 2024. Water baptisms nearly doubled from 94,000 in 2020 to 169,000 in 2024. Spirit baptisms grew from 62,000 to 84,000. AG churches conducted roughly 3,250 water baptisms every weekend in 2024.
 
 ```{r}
-# Fit a linear model to 2009-2019 attendance and project through 2024
+# Display the full conversions table
+conversions
 
+# 2024 totals
+conv_2024 <- conversions %>% filter(year == 2024)
+cat("2024 total inflows:", format(conv_2024$total, big.mark = ","), "\n")
+cat("2024 water baptisms:", format(conv_2024$water_baptisms, big.mark = ","), "\n")
+cat("2024 spirit baptisms:", format(conv_2024$spirit_baptisms, big.mark = ","), "\n")
+cat("2024 other:", format(conv_2024$other, big.mark = ","), "\n")
 
+# Water baptism growth from 2020 to 2024
+conv_2020 <- conversions %>% filter(year == 2020)
+cat("\nWater baptisms in 2020:", format(conv_2020$water_baptisms, big.mark = ","), "\n")
+cat("Water baptisms in 2024:", format(conv_2024$water_baptisms, big.mark = ","), "\n")
+cat("Growth:", format(conv_2024$water_baptisms - conv_2020$water_baptisms, big.mark = ","), "\n")
+cat("Percent increase:", round((conv_2024$water_baptisms - conv_2020$water_baptisms) / conv_2020$water_baptisms * 100, 0), "%\n")
+
+# Average weekly water baptisms in 2024
+weekly_baptisms <- round(conv_2024$water_baptisms / 52)
+cat("\nAverage weekly water baptisms in 2024:", format(weekly_baptisms, big.mark = ","), "\n")
+
+# Spirit baptism growth
+cat("\nSpirit baptisms in 2020:", format(conv_2020$spirit_baptisms, big.mark = ","), "\n")
+cat("Spirit baptisms in 2024:", format(conv_2024$spirit_baptisms, big.mark = ","), "\n")
 ```
 
-### Finding 4: 2024 Was a Banner Year for Conversions
+**Your interpretation:** Does the data confirm the conversion numbers from the article? Is 2024 really a banner year?
 
-**Article claim:** The article reports that total conversion inflows reached about 530,000 in 2024. Water baptisms nearly doubled from 94,000 in 2020 to 169,000 in 2024, meaning AG churches conducted roughly 3,250 water baptisms every weekend. Spirit baptisms grew from 62,000 to 84,000. The "other" category (likely denominational transfers) contributed about 277,000 in 2024.
+## Finding 4: The AG's Changing Racial Composition
 
-Using the conversions data, verify these numbers. Calculate the growth in each conversion type from 2020 to 2024, and compute the average weekly water baptisms figure (divide annual total by 52 weeks).
+**Article claim:** In 2001, 71% of AG members were White, 16% were Hispanic, and 6% were Black. By 2024, only 55% are White, nearly 23% are Hispanic, and about 11% are Black.
 
 ```{r}
-# Analyze conversion trends from 2020-2024
+# Display the racial composition data
+race
 
+# Calculate percentage-point changes from 2001 to the most recent year
+race_2001 <- race %>% filter(year == min(year))
+race_latest <- race %>% filter(year == max(year))
 
+cat("Year comparison:", race_2001$year, "to", race_latest$year, "\n\n")
+
+cat("White: ", round(race_2001$white * 100, 0), "% ->", round(race_latest$white * 100, 0), "%",
+    "(change:", round((race_latest$white - race_2001$white) * 100, 0), "pp)\n")
+cat("Hispanic:", round(race_2001$hispanic * 100, 0), "% ->", round(race_latest$hispanic * 100, 0), "%",
+    "(change:", round((race_latest$hispanic - race_2001$hispanic) * 100, 0), "pp)\n")
+cat("Black:  ", round(race_2001$black * 100, 0), "% ->", round(race_latest$black * 100, 0), "%",
+    "(change:", round((race_latest$black - race_2001$black) * 100, 0), "pp)\n")
+
+# Calculate the non-white share over time
+race %>%
+  mutate(nonwhite = 1 - white) %>%
+  select(year, white, nonwhite) %>%
+  mutate(white_pct = round(white * 100, 0),
+         nonwhite_pct = round(nonwhite * 100, 0))
 ```
 
-### Finding 5: The AG's Racial Composition Now Mirrors the U.S. Population
+**Your interpretation:** Does the data confirm the shift from 71% to 55% White? How does the AG's 2024 composition compare to the U.S. population (58% White, 19% Hispanic, 12% Black)?
 
-**Article claim:** In 2001, 71% of AG members were White, 16% were Hispanic, and 6% were Black. By 2024, only 55% are White, nearly a quarter (23%) are Hispanic, and about 11% are Black. The article notes that for comparison, the U.S. Census reports about 58% White (non-Hispanic), 12% Black, and 19% Hispanic — meaning the AG now looks almost exactly like the broader U.S. population.
+## Finding 5: Membership Growth from 1975 to Pre-Pandemic
 
-Using the race data, calculate the change in racial composition from 2001 to 2024. Compare the 2024 AG composition to the U.S. Census figures mentioned in the article. Calculate the percentage-point shift for each group over the full time period.
+**Article claim:** AG membership grew from about 1 million in 1975 to a peak of about 3.3 million in 2019, adding roughly 2 million members over about 45 years. The growth was remarkably steady at about 2-3% per year.
 
 ```{r}
-# Analyze the changing racial composition of the AG
+# 1975 vs 2019 membership
+members_1975 <- membership %>% filter(year == 1975) %>% pull(members)
+members_2019 <- membership %>% filter(year == 2019) %>% pull(members)
 
+cat("1975 membership:", format(members_1975, big.mark = ","), "\n")
+cat("2019 membership:", format(members_2019, big.mark = ","), "\n")
+cat("Total growth:", format(members_2019 - members_1975, big.mark = ","), "\n")
+cat("Growth multiple:", round(members_2019 / members_1975, 1), "x\n")
 
+# Calculate year-over-year growth rates
+growth_rates <- membership %>%
+  filter(year >= 1975, year <= 2019) %>%
+  mutate(
+    prev_members = lag(members),
+    growth_rate = (members - prev_members) / prev_members * 100
+  ) %>%
+  filter(!is.na(growth_rate))
+
+cat("\nAverage annual growth rate (1975-2019):", round(mean(growth_rates$growth_rate), 1), "%\n")
+cat("Median annual growth rate:", round(median(growth_rates$growth_rate), 1), "%\n")
+cat("Min growth rate:", round(min(growth_rates$growth_rate), 1), "% in", growth_rates$year[which.min(growth_rates$growth_rate)], "\n")
+cat("Max growth rate:", round(max(growth_rates$growth_rate), 1), "% in", growth_rates$year[which.max(growth_rates$growth_rate)], "\n")
+
+# How many years had growth between 1% and 4%?
+steady_growth <- growth_rates %>% filter(growth_rate >= 1, growth_rate <= 4)
+cat("\nYears with 1-4% growth:", nrow(steady_growth), "of", nrow(growth_rates), "years\n")
 ```
+
+**Your interpretation:** Does the data support the claim of steady 2-3% annual growth? Was the growth truly "remarkably steady"?
 
 ## Summary
 

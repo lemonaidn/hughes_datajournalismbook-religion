@@ -16,259 +16,334 @@ In this reverse engineering assignment, you will analyze Dale E. Jones's report 
 
 **Your task:**
 
-1. Read the report carefully (ReligiousDiversity-Jones1.txt in the parent religion-data folder)
-2. Identify key facts and statistics that were produced through data analysis
-3. Write well-commented, well-structured R code to reproduce those findings
-4. Focus on replicable quantitative sentences (not the maps)
+1.  Read the report carefully (ReligiousDiversity-Jones1.txt in this folder)
+2.  Identify key facts and statistics that were produced through data analysis
+3.  Write well-commented, well-structured R code to reproduce those findings
+4.  Focus on replicable quantitative sentences (not the maps)
 
-**Important:** This is NOT a step-by-step walkthrough. You are expected to independently:
-- Identify which claims in the report can be verified with data
-- Determine what data you need and how to obtain it
-- Clean and analyze the data appropriately
-- Implement Simpson's Diversity Index calculation
-- Reproduce the findings with your own code
+## The Data
 
-## Understanding Simpson's Diversity Index
+You have two Excel files from the 2020 U.S. Religion Census:
 
-Before analyzing the data, make sure you understand the diversity measure used in the report:
+- **2020_USRC_Group_Detail.xlsx**: Breakdowns by individual religious group at the national, state, county, and metro levels. Each row is one religious group in one geographic area.
+- **2020_USRC_Summaries.xlsx**: Aggregate totals (all groups combined) at each geographic level, including population, total congregations, and total adherents.
 
-**Formula:** D = 1 - ∑(n/N)²
-
-Where:
-- N = total number of instances (e.g., total adherents in a county)
-- n = instances in each category (e.g., Catholic adherents in that county)
-- For each category: divide n by N, square the result, sum all squared results
-- Subtract this sum from 1 to get the diversity index
-- Result ranges from 0 (no diversity) to 1 (maximum diversity)
-
-## Load Libraries
+## Load Libraries and Data
 
 ```{r}
-# Load the tidyverse and any other libraries you need
-
-
+library(tidyverse)
+library(readxl)
 ```
-
-## Load Data
 
 ```{r}
-# Load the 2020 U.S. Religion Census data
-# You will need to download this from usreligioncensus.org
-# and determine which files/tables to use
+# Load all the sheets we'll need
 
+# Group-level detail by geographic area
+groups_nation <- read_excel("2020_USRC_Group_Detail.xlsx", sheet = "2020 Group by Nation")
+groups_state <- read_excel("2020_USRC_Group_Detail.xlsx", sheet = "2020 Group by State")
+groups_county <- read_excel("2020_USRC_Group_Detail.xlsx", sheet = "2020 Group by County")
+groups_metro <- read_excel("2020_USRC_Group_Detail.xlsx", sheet = "2020 Group by Metro")
 
+# Summary totals by geographic area
+summary_state <- read_excel("2020_USRC_Summaries.xlsx", sheet = "2020 State Summary")
+summary_county <- read_excel("2020_USRC_Summaries.xlsx", sheet = "2020 County Summary")
+summary_metro <- read_excel("2020_USRC_Summaries.xlsx", sheet = "2020 Metro Summary")
+
+# Preview
+glimpse(groups_state)
+glimpse(summary_state)
 ```
 
-## Implement Simpson's Diversity Index
+## Finding 1: Religious Body Counts in Specific Areas
 
-```{r}
-# Write a function to calculate Simpson's Diversity Index
-# This function should:
-# 1. Take a dataframe with categories and their counts/proportions
-# 2. Calculate (n/N)² for each category
-# 3. Sum those squared values
-# 4. Subtract from 1 to get the diversity index
-
-
-```
-
-## Questions to Guide Your Analysis
-
-As you read the report, consider these questions:
-
-1. **What are the main quantitative claims?** Look for specific percentages, counts, rankings, and diversity index values.
-
-2. **What data sources were used?** The report uses the 2020 U.S. Religion Census with different categorization schemes and geographic aggregations.
-
-3. **What is the methodology?** The report applies Simpson's Diversity Index to different religious categorizations (372 bodies, 215 bodies, 6 world religions, 43 families, 13 traditions, 13 traditions + unaffiliated).
-
-4. **What geographic levels are analyzed?** Counties, metropolitan areas (1 million+ population), and states.
-
-5. **What specific claims can you verify?** Focus on:
-   - Counts of religious bodies in specific areas (e.g., "Los Angeles County has 171 religious bodies")
-   - Percentage claims (e.g., "Catholics are 47% of Pennsylvania's religious adherents")
-   - Rankings (e.g., Table 1's most/least diverse metros, Table 2's most/least diverse states)
-   - Specific diversity index values or comparisons
-
-## Your Analysis
-
-Write your code below to reproduce key findings from the report. For each finding:
-- State the claim from the report
-- Show your code with clear comments
-- Present your results
-- Compare to what the report stated
-
-### Finding 1: Religious Body Counts
-
-Verify claims about the number of different religious bodies in specific areas.
-
-**Claims to verify:**
+**Report claims:**
 - Los Angeles County has 171 religious bodies
 - New York-Newark-Jersey City metro has 198 religious bodies
 - Pennsylvania has 245 religious bodies
 
+A "religious body" is a distinct denomination/group present in the area (with at least one congregation or adherent count reported).
+
 ```{r}
-# Your code here
+# Count distinct religious bodies in Los Angeles County
+# Los Angeles County FIPS = 06037
+la_bodies <- groups_county %>%
+  filter(`County Name` == "Los Angeles County" | FIPS == "06037") %>%
+  filter(!is.na(Congregations) | !is.na(Adherents)) %>%
+  distinct(`Group Code`) %>%
+  nrow()
 
+cat("Los Angeles County religious bodies:", la_bodies, "(report claims: 171)\n")
 
+# Count in New York-Newark-Jersey City metro
+# Need to find the CBSA code for this metro
+ny_metro <- groups_metro %>%
+  filter(str_detect(`Metro Name`, "New York-Newark")) %>%
+  filter(!is.na(Congregations) | !is.na(Adherents)) %>%
+  distinct(`Group Code`) %>%
+  nrow()
+
+cat("New York-Newark-Jersey City metro religious bodies:", ny_metro, "(report claims: 198)\n")
+
+# Count in Pennsylvania
+pa_bodies <- groups_state %>%
+  filter(`State Name` == "Pennsylvania") %>%
+  filter(!is.na(Congregations) | !is.na(Adherents)) %>%
+  distinct(`Group Code`) %>%
+  nrow()
+
+cat("Pennsylvania religious bodies:", pa_bodies, "(report claims: 245)\n")
 ```
 
-### Finding 2: Religious Composition of Specific Areas
+**Your interpretation:** Do your counts match the report's claims? If slightly different, why might that be?
 
-Verify percentage claims about religious adherents in specific areas.
+## Finding 2: Catholic Dominance in Key Areas
 
-**Claims to verify:**
+**Report claims:**
 - Catholics are 47% of Pennsylvania's religious adherents
 - Catholics are 61% of the New York metro area's adherents
 - Catholics are 62% of all adherents in Los Angeles County
-- Two-thirds of Oregon, New Hampshire, and Maine population is unaffiliated
 
 ```{r}
-# Your code here
+# Pennsylvania: Catholic share of total adherents
+pa_total_adherents <- summary_state %>%
+  filter(`State Name` == "Pennsylvania") %>%
+  pull(Adherents)
 
+pa_catholic_adherents <- groups_state %>%
+  filter(`State Name` == "Pennsylvania", `Group Code` == "081") %>%
+  pull(Adherents)
 
+cat("PA total adherents:", format(pa_total_adherents, big.mark = ","), "\n")
+cat("PA Catholic adherents:", format(pa_catholic_adherents, big.mark = ","), "\n")
+cat("Catholic share of PA adherents:", round(pa_catholic_adherents / pa_total_adherents * 100, 0), "% (report claims: 47%)\n\n")
+
+# New York metro: Catholic share
+ny_metro_name <- groups_metro %>%
+  filter(str_detect(`Metro Name`, "New York-Newark")) %>%
+  pull(`Metro Name`) %>%
+  first()
+
+ny_metro_total <- summary_metro %>%
+  filter(str_detect(`Metro Name`, "New York-Newark")) %>%
+  pull(Adherents)
+
+ny_metro_catholic <- groups_metro %>%
+  filter(str_detect(`Metro Name`, "New York-Newark"), `Group Code` == "081") %>%
+  pull(Adherents)
+
+cat("NY metro total adherents:", format(ny_metro_total, big.mark = ","), "\n")
+cat("NY metro Catholic adherents:", format(ny_metro_catholic, big.mark = ","), "\n")
+cat("Catholic share of NY metro adherents:", round(ny_metro_catholic / ny_metro_total * 100, 0), "% (report claims: 61%)\n\n")
+
+# Los Angeles County: Catholic share
+la_total <- summary_county %>%
+  filter(`County Name` == "Los Angeles County" | FIPS == "06037") %>%
+  pull(Adherents)
+
+la_catholic <- groups_county %>%
+  filter((`County Name` == "Los Angeles County" | FIPS == "06037") & `Group Code` == "081") %>%
+  pull(Adherents)
+
+cat("LA County total adherents:", format(la_total, big.mark = ","), "\n")
+cat("LA County Catholic adherents:", format(la_catholic, big.mark = ","), "\n")
+cat("Catholic share of LA County adherents:", round(la_catholic / la_total * 100, 0), "% (report claims: 62%)\n")
 ```
 
-### Finding 3: Metropolitan Area Diversity Rankings (Table 1)
+**Your interpretation:** Do the Catholic percentages match the report?
 
-Reproduce the rankings from Table 1, which shows the most and least religiously diverse metropolitan areas with 1 million or more population.
+## Finding 3: State Unaffiliated Percentages
 
-**Most diverse (rank 1-5):**
-1. Memphis, TN-MS-AR
-2. Charlotte-Concord-Gastonia, NC-SC
-3. Richmond, VA
-4. Milwaukee-Waukesha, WI
-5. Cleveland-Elyria, OH
+**Report claims:**
+- Two-thirds of Oregon, New Hampshire, and Maine populations are unaffiliated
+- New Hampshire: 73% unaffiliated
+- Maine: 69% unaffiliated
+- Oregon: 67% unaffiliated
+- Alaska: 65% unaffiliated
 
-**Least diverse (rank 52-56):**
-52. Tucson, AZ
-53. Sacramento-Roseville-Folsom, CA
-54. San Francisco-Oakland-Berkeley, CA
-55. Portland-Vancouver-Hillsboro, OR-WA
-56. Denver-Aurora-Lakewood, CO
+The "unaffiliated" population = total population minus total adherents.
 
 ```{r}
-# Your code here
-# You'll need to:
-# 1. Identify the 56 metropolitan areas with 1 million+ population in 2020
-# 2. Calculate Simpson's Diversity Index using 13 traditions + unaffiliated
-# 3. Rank them and compare to the table
+# Calculate unaffiliated percentage for each state
+state_unaffiliated <- summary_state %>%
+  mutate(
+    unaffiliated = `2020 Population` - Adherents,
+    unaffiliated_pct = round(unaffiliated / `2020 Population` * 100, 0)
+  ) %>%
+  select(`State Name`, `2020 Population`, Adherents, unaffiliated, unaffiliated_pct) %>%
+  arrange(desc(unaffiliated_pct))
 
+# Show the top 10 most unaffiliated states
+state_unaffiliated %>% slice_head(n = 10)
 
+# Check the specific states from the report
+cat("\nSpecific state claims:\n")
+for (st in c("New Hampshire", "Maine", "Oregon", "Alaska")) {
+  val <- state_unaffiliated %>% filter(`State Name` == st) %>% pull(unaffiliated_pct)
+  cat(st, ":", val, "% unaffiliated\n")
+}
 ```
 
-### Finding 4: Religious Composition of Specific Metropolitan Areas
+**Your interpretation:** Do the unaffiliated percentages match? Is it true that about two-thirds of OR, NH, and ME populations are unaffiliated?
 
-Verify the composition claims for specific metros.
+## Finding 4: Large Metro Area Diversity Comparison
 
-**Claims to verify:**
-- Denver: two-thirds unaffiliated, nearly half the remaining is Catholic
-- Salt Lake City: half claimed by Latter-day Saints, one-third unaffiliated
-- Memphis: one-third unaffiliated, one-third Evangelical Protestant, one-sixth Black Protestant, Mainline Protestants and Catholics each ~5%
-
-```{r}
-# Your code here
-
-
-```
-
-### Finding 5: State Diversity Rankings (Table 2)
-
-Reproduce the rankings from Table 2, which shows the most and least religiously diverse states.
-
-**Most diverse (rank 1-5):**
-1. Louisiana (37% unaffiliated, 27% Catholic, 25% Evangelical Protestant)
-2. South Carolina (45% unaffiliated, 20% Evangelical Protestant, 18% Mainline Protestant)
-3. Texas (45% unaffiliated, 24% Evangelical Protestant, 20% Catholic)
-4. North Dakota (45% unaffiliated, 21% Catholic, 21% Mainline Protestant)
-5. Idaho (47% unaffiliated, 25% Latter-day Saints, 12% Evangelical Protestant)
-
-**Least diverse (rank 46-50):**
-46. Alaska (65% unaffiliated)
-47. Oregon (67% unaffiliated)
-48. Utah (65% Latter-day Saints)
-49. Maine (69% unaffiliated)
-50. New Hampshire (73% unaffiliated)
-
-```{r}
-# Your code here
-
-
-```
-
-### Finding 6: District of Columbia Composition
-
-Verify the claim that DC would be the most diverse if it were a state.
-
-**Claims to verify:**
-- DC: 44% unaffiliated
-- Evangelical Protestants: 15%
-- Catholics: 12%
-- Black Protestants: 10%
-- Mainline Protestants: 10%
-
-```{r}
-# Your code here
-
-
-```
-
-### Finding 7: Metropolitan Area Diversity Categories
-
-Verify the claim about how many large metros fall into different diversity categories.
-
-**Claims to verify:**
-- Over one-third (20 of 56) of the nation's largest metro areas rank with the top 20% of counties
+**Report claims:**
+- 56 metropolitan areas have 1 million+ population
+- Over one-third (20 of 56) rank with the top 20% of counties for diversity
 - Only 2 metros would rank with moderate diversity
 - None would be categorized with the least diverse counties
 
-```{r}
-# Your code here
-# You'll need to compare metro diversity indices to county diversity indices
-
-
-```
-
-### Finding 8: World Religions Diversity Comparison
-
-Verify the claim about maximum diversity when using only world religions.
-
-**Claims to verify:**
-- Highest diversity based on world religions is only 0.51
-- This compares to 0.62 needed to reach "moderate diversity" on the all religious bodies scale
+The report also provides specific compositions:
+- Denver: two-thirds unaffiliated, nearly half the remaining is Catholic
+- Memphis: one-third unaffiliated, one-third Evangelical Protestant, ~one-sixth Black Protestant
 
 ```{r}
-# Your code here
-# You'll need to calculate diversity using 6 world religions and compare to the scale
+# Identify metro areas with 1M+ population
+big_metros <- summary_metro %>%
+  filter(`2020 Population` >= 1000000)
 
+cat("Metro areas with 1M+ population:", nrow(big_metros), "(report claims: 56)\n\n")
 
+# Check Denver composition
+denver_pop <- big_metros %>%
+  filter(str_detect(`Metro Name`, "Denver")) %>%
+  pull(`2020 Population`)
+
+denver_adherents <- big_metros %>%
+  filter(str_detect(`Metro Name`, "Denver")) %>%
+  pull(Adherents)
+
+denver_unaffiliated_pct <- round((denver_pop - denver_adherents) / denver_pop * 100, 0)
+
+denver_catholic <- groups_metro %>%
+  filter(str_detect(`Metro Name`, "Denver"), `Group Code` == "081") %>%
+  pull(Adherents)
+
+cat("Denver:\n")
+cat("  Unaffiliated:", denver_unaffiliated_pct, "% (report claims: ~two-thirds)\n")
+cat("  Catholic adherents:", format(denver_catholic, big.mark = ","), "\n")
+cat("  Catholic share of all adherents:", round(denver_catholic / denver_adherents * 100, 0), "% (report claims: ~half of affiliated)\n\n")
+
+# Check Memphis composition
+memphis_pop <- big_metros %>%
+  filter(str_detect(`Metro Name`, "Memphis")) %>%
+  pull(`2020 Population`)
+
+memphis_adherents <- big_metros %>%
+  filter(str_detect(`Metro Name`, "Memphis")) %>%
+  pull(Adherents)
+
+memphis_unaffiliated_pct <- round((memphis_pop - memphis_adherents) / memphis_pop * 100, 0)
+cat("Memphis:\n")
+cat("  Unaffiliated:", memphis_unaffiliated_pct, "% (report claims: ~one-third)\n")
+
+# Show the top groups in Memphis
+memphis_groups <- groups_metro %>%
+  filter(str_detect(`Metro Name`, "Memphis")) %>%
+  filter(!is.na(Adherents)) %>%
+  arrange(desc(Adherents)) %>%
+  slice_head(n = 10) %>%
+  mutate(pct_of_pop = round(Adherents / memphis_pop * 100, 1)) %>%
+  select(`Group Name`, Adherents, pct_of_pop)
+
+memphis_groups
 ```
 
-## Additional Findings
+**Your interpretation:** Does Denver's composition match "two-thirds unaffiliated"? Does Memphis show the one-third/one-third split the report describes?
 
-Identify and reproduce other quantitative claims from the report.
+## Finding 5: State Diversity Rankings (Table 2)
+
+**Report claims (most diverse states):**
+1. Louisiana (37% unaffiliated, 27% Catholic, 25% Evangelical Protestant)
+2. South Carolina
+3. Texas
+4. North Dakota
+5. Idaho
+
+**Report claims (least diverse):**
+- Alaska (65% unaffiliated), Oregon (67%), Utah (65% Latter-day Saints), Maine (69%), New Hampshire (73%)
+
+For Table 2, the key compositions can be verified by looking at the largest groups in each state and the unaffiliated share.
 
 ```{r}
-# Your analysis here
+# For Louisiana: check the top religious groups and unaffiliated share
+la_pop <- summary_state %>%
+  filter(`State Name` == "Louisiana") %>%
+  pull(`2020 Population`)
 
+la_adherents <- summary_state %>%
+  filter(`State Name` == "Louisiana") %>%
+  pull(Adherents)
 
+la_unaffiliated_pct <- round((la_pop - la_adherents) / la_pop * 100, 0)
+
+la_top_groups <- groups_state %>%
+  filter(`State Name` == "Louisiana", !is.na(Adherents)) %>%
+  arrange(desc(Adherents)) %>%
+  slice_head(n = 5) %>%
+  mutate(pct_of_pop = round(Adherents / la_pop * 100, 0)) %>%
+  select(`Group Name`, Adherents, pct_of_pop)
+
+cat("Louisiana:\n")
+cat("  Unaffiliated:", la_unaffiliated_pct, "% (report claims: 37%)\n")
+cat("  Top groups:\n")
+print(la_top_groups)
+
+# For Utah: check Latter-day Saints share
+ut_pop <- summary_state %>%
+  filter(`State Name` == "Utah") %>%
+  pull(`2020 Population`)
+
+# LDS group code is typically 160
+ut_lds <- groups_state %>%
+  filter(`State Name` == "Utah", str_detect(`Group Name`, "Latter-day|LDS|Church of Jesus Christ")) %>%
+  pull(Adherents) %>%
+  sum(na.rm = TRUE)
+
+cat("\nUtah:\n")
+cat("  LDS adherents:", format(ut_lds, big.mark = ","), "\n")
+cat("  LDS share of population:", round(ut_lds / ut_pop * 100, 0), "% (report claims: 65%)\n")
+
+# DC composition
+dc_pop <- summary_state %>%
+  filter(str_detect(`State Name`, "District|Columbia|DC")) %>%
+  pull(`2020 Population`)
+
+dc_adherents <- summary_state %>%
+  filter(str_detect(`State Name`, "District|Columbia|DC")) %>%
+  pull(Adherents)
+
+dc_unaffiliated <- round((dc_pop - dc_adherents) / dc_pop * 100, 0)
+
+cat("\nDistrict of Columbia:\n")
+cat("  Unaffiliated:", dc_unaffiliated, "% (report claims: 44%)\n")
+
+dc_top_groups <- groups_state %>%
+  filter(str_detect(`State Name`, "District|Columbia|DC"), !is.na(Adherents)) %>%
+  arrange(desc(Adherents)) %>%
+  slice_head(n = 10) %>%
+  mutate(pct_of_pop = round(Adherents / dc_pop * 100, 1)) %>%
+  select(`Group Name`, Adherents, pct_of_pop)
+
+cat("  Top groups:\n")
+print(dc_top_groups)
 ```
 
-## Summary of Results
+**Your interpretation:** Does Louisiana show ~37% unaffiliated, ~27% Catholic, ~25% Evangelical Protestant? Does Utah show ~65% Latter-day Saints? Does DC show four groups each at 10%+?
 
-Summarize what you were able to reproduce and any discrepancies you found.
+## Summary
+
+Summarize what you were able to reproduce and any discrepancies you found. Note that some findings in the report require mapping individual religious groups to the 13 tradition categories (Black Protestant, Buddhist, Catholic, Evangelical Protestant, Hindu, Islam, Jewish, Jehovah's Witnesses, Latter-day Saints, Mainline Protestant, Orthodox Christian, Other Christian, Other Eastern), which requires an external crosswalk from ARDA.
 
 ## Challenges and Limitations
 
 Describe any challenges you encountered:
 - What data was difficult to obtain or prepare?
 - What assumptions did you have to make?
-- What findings could not be reproduced and why?
-- How did you handle metropolitan area definitions?
+- How did you handle the distinction between individual groups and broader traditions?
 - How did you calculate the unaffiliated population?
 
 ## Data Sources
 
-- 2020 U.S. Religion Census: https://www.usreligioncensus.org/
-- Population data: U.S. Census Bureau
-- Metropolitan area definitions: Office of Management and Budget (OMB)
+-   2020 U.S. Religion Census: <https://www.usreligioncensus.org/>
+-   Population data: U.S. Census Bureau (included in the Religion Census files)
