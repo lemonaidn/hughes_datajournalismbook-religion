@@ -16,17 +16,24 @@ library(tidyverse)
 library(dataverse)
 library(haven)
 
-# Set Dataverse server
-Sys.setenv("DATAVERSE_SERVER" = "dataverse.harvard.edu")
-
-# Download CES 2024 Common Content
+# Load CES 2024 Common Content
+# If a local copy exists, use it; otherwise download from Harvard Dataverse.
 # DOI: 10.7910/DVN/X11EP6
-ces2024_raw <- get_dataframe_by_name(
-  filename = "CCES24_Common_OUTPUT.dta",
-  dataset = "doi:10.7910/DVN/X11EP6",
-  .f = haven::read_dta,
-  original = TRUE
-)
+local_dta <- "cces24/CCES24_Common_OUTPUT_vv_topost_final.dta"
+
+if (file.exists(local_dta)) {
+  message("Reading from local file: ", local_dta)
+  ces2024_raw <- haven::read_dta(local_dta)
+} else {
+  message("Local file not found. Downloading from Harvard Dataverse...")
+  Sys.setenv("DATAVERSE_SERVER" = "dataverse.harvard.edu")
+  ces2024_raw <- get_dataframe_by_name(
+    filename = "CCES24_Common_OUTPUT.dta",
+    dataset = "doi:10.7910/DVN/X11EP6",
+    .f = haven::read_dta,
+    original = TRUE
+  )
+}
 
 # Select variables needed for the assignment
 ces2024 <- ces2024_raw |>
@@ -42,6 +49,11 @@ ces2024 <- ces2024_raw |>
     religpew_presby,
     religpew_lutheran,
     religpew_congreg,
+    religpew_jewish,    # Reform=1, Conservative=2, Orthodox=3, Other=4
+    religpew_christian, # Church of Christ=1, Disciples=2, Other=3
+    religpew_holiness,  # Church of the Nazarene=1, etc.
+    religpew_reformed,  # Reformed Church=1, Christian Reformed=2, etc.
+    religpew_advent,    # Seventh Day Adventist=1, etc.
     income = faminc_new,
     educ,
     pid7,
@@ -156,9 +168,52 @@ ces2024 <- ces2024 |>
 # 15 = $350,000 - $499,999
 # 16 = $500,000 or more
 
-# Keep only the columns students need for the assignment
+# Keep the columns students need for the assignment.
+# Denomination sub-variables are preserved so students can filter to specific
+# denominations (e.g. SBC, UMC, PCUSA, TEC, Reform Jewish) rather than only
+# the broad trad categories. Coding mirrors the going-dead assignment convention.
+#
+# baptist:      1=SBC, 2=ABCUSA, 3=Natl Baptist Convention, 4=Progressive Baptist,
+#               5=Independent Baptist, 6=Baptist General Conference,
+#               7=Baptist Missionary Assoc., 8=Conservative Baptist,
+#               9=Free Will Baptist, 10=General Assoc. Regular Baptists, 90=Other
+# methodist:    1=United Methodist, 2=Free Methodist, 3=AME, 4=AME Zion,
+#               5=Christian Methodist Episcopal, 90=Other
+# nondenom:     1=Nondenom Evangelical, 2=Fundamentalist, 3=Nondenom Charismatic,
+#               4=Interdenominational, 5=Community Church, 90=Other
+# pentecostal:  1=Assemblies of God, 2=Church of God (Cleveland), 3=Foursquare,
+#               4=Pentecostal Church of God, 5=United Pentecostal,
+#               6=Church of God in Christ, 7=Church of God of Prophecy,
+#               8=International Church of the Foursquare Gospel, 9=Other, 90=Other
+# episcopal:    1=Episcopal/TEC, 2=Anglican, 3=Reformed Episcopal, 90=Other
+# presbyterian: 1=PCUSA, 2=PCA, 3=Cumberland Presbyterian, 4=Associate Reformed,
+#               5=Orthodox Presbyterian, 6=Evangelical Presbyterian, 90=Other
+# lutheran:     1=ELCA, 2=Missouri Synod, 3=Wisconsin Synod, 4=Other
+# congregational:1=UCC, 2=Conservative Congregational, 3=Other
+# jewish:       1=Reform, 2=Conservative, 3=Orthodox, 4=Other Jewish
+# christian:    1=Church of Christ, 2=Disciples of Christ, 3=Other
+# holiness:     1=Church of the Nazarene, 2=Salvation Army, 3=Wesleyan,
+#               4=Free Methodist (holiness), 5=Christian & Missionary Alliance,
+#               6=Other
+# reformed:     1=Reformed Church in America, 2=Christian Reformed, 90=Other
+# adventist:    1=Seventh Day Adventist, 2=Other Adventist, 3=Other
 ces2024_final <- ces2024 |>
-  select(weight, trad, income, pid7, vote_2024, race, educ)
+  select(
+    weight, trad, income, pid7, vote_2024, race, educ,
+    baptist      = religpew_baptist,
+    methodist    = religpew_methodist,
+    nondenom     = religpew_nondenom,
+    pentecostal  = religpew_pentecost,
+    episcopal    = religpew_episcop,
+    presbyterian = religpew_presby,
+    lutheran     = religpew_lutheran,
+    congregational = religpew_congreg,
+    jewish       = religpew_jewish,
+    christian    = religpew_christian,
+    holiness     = religpew_holiness,
+    reformed     = religpew_reformed,
+    adventist    = religpew_advent
+  )
 
 # Save the processed data as RDS (preserves data types)
 saveRDS(ces2024_final, "data/ces_2024_religion.rds")
@@ -170,8 +225,20 @@ cat("Data saved to:\n")
 cat("  - data/ces_2024_religion.rds\n")
 cat("  - data/ces_2024_religion.csv\n")
 cat("\nRows:", nrow(ces2024_final), "\n")
+cat("Columns:", ncol(ces2024_final), "\n")
 cat("\nTraditions:\n")
 print(sort(table(ces2024_final$trad), decreasing = TRUE))
 cat("\nIncome range:", min(ces2024_final$income, na.rm=TRUE), "-", max(ces2024_final$income, na.rm=TRUE), "\n")
 cat("Party ID range:", min(ces2024_final$pid7, na.rm=TRUE), "-", max(ces2024_final$pid7, na.rm=TRUE), "\n")
 cat("Vote 2024 values:", paste(sort(unique(ces2024_final$vote_2024)), collapse=", "), "\n")
+cat("\nDenomination column non-NA counts:\n")
+denom_cols <- c("baptist","methodist","nondenom","pentecostal","episcopal",
+                "presbyterian","lutheran","congregational","jewish",
+                "christian","holiness","reformed","adventist")
+for (col in denom_cols) {
+  if (col %in% names(ces2024_final)) {
+    cat(sprintf("  %-15s %d\n", col, sum(!is.na(ces2024_final[[col]]))))
+  } else {
+    cat(sprintf("  %-15s [not found in raw data]\n", col))
+  }
+}
