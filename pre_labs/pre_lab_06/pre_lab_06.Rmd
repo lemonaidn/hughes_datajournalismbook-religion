@@ -53,7 +53,7 @@ Since we have five dataframes, we're going to need to pass them as a list, meani
 
 ### Task 3: Using bind_rows
 
-**Task** Combine the five files into a single data frame using the bind_rows() function, along with list(). Add a description of what this code does to your reference notebook.
+**Task** Combine the five files into a single data frame using the bind_rows() function, along with list().
 
 ```{r}
 # bind_rows with list
@@ -237,7 +237,7 @@ people_with_conferences |>
 
 An anti_join keeps records from the left dataset that DON'T have matches in the right dataset. This is useful for finding missing data.
 
-**Task** Run the following code to find people in umdata_people who don't appear in umdata_people_all. Are there any? Why or why not? **Answer**
+**Task** Run the following code to find people in umdata_people who don't appear in umdata_people_all. Are there any? Why or why not? You can check people's URLs. **Answer**
 
 ```{r}
 people_not_in_all <- umdata_people |>
