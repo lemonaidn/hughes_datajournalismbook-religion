@@ -133,10 +133,8 @@ clergy_long <- clergy_wide |>
 
 glimpse(clergy_long)
 ```
-Notice that pivot_longer takes:
-- cols: which columns to pivot (the cycle years)
-- names_to: what to call the new column that will hold the old column names
-- values_to: what to call the new column that will hold the values
+
+Notice that pivot_longer takes: - cols: which columns to pivot (the cycle years) - names_to: what to call the new column that will hold the old column names - values_to: what to call the new column that will hold the values
 
 ## Joining data
 
@@ -269,6 +267,6 @@ head(conference_counts, 10)
 
 **Task** Using both the clergy contribution data and the UM data, think about what other questions you could answer. Write down at least two questions you could explore. **Answer**
 
-1.
+1.  
 
-2.
+2.  
