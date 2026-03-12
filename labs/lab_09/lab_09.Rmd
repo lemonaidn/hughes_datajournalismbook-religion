@@ -1,7 +1,7 @@
 ---
 title: "lab_09.Rmd"
 author: "Derek Willis"
-date: "2025-01-15"
+date: "2026-01-15"
 output: html_document
 ---
 
@@ -24,37 +24,52 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Questions
 
-**Q1.** You want to explore the differences between the electoral performances of Dan Cox in 2022 and Larry Hogan in 2018. Except a map is probably not the best way to show that. Let's make a chart instead, and the type is up to you, but the goal is to clearly show the differences between the two.
+**Q1.** You want to explore how Maryland compares to its neighbors when it comes to religious adherence and diversity. Let's make a chart that clearly shows Maryland's position among Mid-Atlantic states on both of those dimensions.
 
-You MUST do the following things when answering this question: \* Load the md_gov_county.csv and md_gov_county_18.csv files from the data folder \* Join those dataframes, specifying the join column. \* Add columns to generate percentages for Cox and Hogan. \* Export that joined dataframe to a CSV file using `write_csv`. \* Using that exported CSV, make a chart with Datawrapper. What kind of chart is up to you, so experiment with a few kinds of charts to see what answers the question above in the clearest way. Your chart MUST: \* Have a title, description and source that tells readers about the data. The title and description should highlight the most newsworthy or important aspect. \* Easily readable labels and values \* Publish your chart \* Describe your thought process below - why you chose to make the chart you did - and add the URL of your chart.
+You MUST do the following things when answering this question:
+
+* Load the `state_religion_comparison.csv` file from the data folder
+* Filter it to the following states: Maryland, Virginia, Pennsylvania, Delaware, New Jersey, New York, and the District of Columbia
+* Add a column converting "Adherents as % of Population" from a string (like `"43.47%"`) to a numeric value
+* Export that filtered dataframe to a CSV file using `write_csv`
+* Using that exported CSV, make a chart in Datawrapper. What kind of chart is up to you, so experiment with a few kinds of charts to see what answers the question above in the clearest way. Your chart MUST:
+  * Have a title, description and source that tells readers about the data. The title and description should highlight the most newsworthy or important aspect.
+  * Easily readable labels and values
+  * Be published
+
+Describe your thought process below — why you chose to make the chart you did — and add the URL of your chart.
 
 **A1.**
 
 ```{r}
 ```
 
-**Q2.** You're interested in seeing how the methods of voting have changed in Maryland since 2018. Using the `md_votes_by_type.csv` that has data from the top of the ticket (governor in 2018 and 2022, president in 2020), make a chart showing the percentage of votes cast in each category - early voting, election day and mail - over the three years. You'll need to make those percentages in R and then export the CSV using `write_csv`, then make the chart in Datawrapper. Have a title, description and source that tells readers about the data. The title and description should highlight the most newsworthy or important aspect.
+**Q2.** You're interested in seeing whether states that have higher rates of religious adherence also tend to be more or less religiously diverse. Using the `state_religion_comparison.csv` file, make a chart showing the relationship between the percentage of the population counted as religious adherents and the Diversity Index Value for all 50 states and DC. You'll need to make sure both columns are numeric in R, then export the CSV using `write_csv`, then make the chart in Datawrapper.
 
-HINT: In Datawrapper's "Check and Describe" tab, you can click on a column to get the option of "hiding" it in any visualization.
+Your chart MUST have a title, description and source that tells readers about the data. The title and description should highlight the most newsworthy or important aspect.
 
-What do you think the story here is? Put the answer below along with the URL of your chart.
+HINT: In Datawrapper's "Check and Describe" tab, you can click on a column to get the option of "hiding" it in any visualization. You may also want to think about which chart type best shows a relationship between two continuous variables.
+
+What do you think the story here is? Which states stand out as outliers? Put the answer below along with the URL of your chart.
 
 **A2.**
 
 ```{r}
 ```
 
-**Q3.** You want to know more about the geography of 911 overdose calls in Montgomery County, Maryland, in 2022. To do that, you'll make a choropleth map in Datawrapper. You will need to:
+**Q3.** You want to understand the geography of religious adherence across the entire United States at the county level. To do that, you'll make a choropleth map in Datawrapper. You will need to:
 
--   Read the file into R and create columns for the number of calls in each zip code and the percentage of all calls that number represents and then export that CSV to use in your map.
--   Search for Maryland zip codes (use the 2020 zip codes) as the base map.
+-   Load the `county_religion_choropleth.csv` file and create a column converting "Adherents as % of Population" to a numeric value. Also create a column that converts the FIPS code to a zero-padded 5-character string (e.g. `1001` becomes `"01001"`) — Datawrapper needs this format to match counties.
+-   Export that dataframe to a CSV file using `write_csv`.
+-   In Datawrapper, create a new map. Search for "USA >> Counties (2022)" as the base map.
 -   Upload the CSV file.
--   Change the tooltip to show both the number and the percentage (you can put them side by side or put one under the other). Make sure to properly format both numbers to make them readable.
--   Add labels to your map that locate prominent places in the county.
+-   Match the zero-padded FIPS column as the geographic identifier.
+-   Change the tooltip to show both the county name and the adherence percentage. Make sure to properly format the percentage to make it readable.
+-   Add labels to your map that locate at least 3-4 prominent states or regions.
 -   Have a title, description and source that tells readers about the data. The title and description should highlight the most newsworthy or important aspect.
--   Make any other changes to data that helps you make a more accurate map.
+-   Make any other changes that help you make a more accurate or readable map.
 
-What do you think the story here is, and what would you want to know more about? Put the answer below along with the URL of your map.
+What do you think the story here is — what geographic patterns stand out, and what would you want to know more about? Put the answer below along with the URL of your map.
 
 **A3.**
 
