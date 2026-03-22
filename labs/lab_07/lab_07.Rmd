@@ -2,7 +2,6 @@
 title: "lab_07"
 author: "Derek Willis"
 date: "2025-01-16"
-output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -32,7 +31,7 @@ options(scipen=999)
 
 You'll need your Census API Key:
 
-**Task** set your API Key if you haven't already. You won't need to install or overwrite it.
+**Task** set your API Key only if you haven't already. You won't need to install or overwrite it.
 
 ```{r echo=FALSE}
 ```
@@ -48,114 +47,52 @@ You'll also need to load the list of American Community Survey variables from th
 
 ## Answer questions
 
-**Q1** What is the Maryland county with the highest percentage of the population with a bachelor's degree or higher, according to the ACS 2021 5-year estimates? You will need to find the variable for education first (the ACS has many choices for education, but you're looking for the total population 25 and over with at least a bachelor's degree).
+**Q1** What is the Maryland county with the highest percentage of the population with a bachelor's degree or higher, according to the ACS 2021 5-year estimates? The variable you want is `DP02_0068P` from the ACS Data Profile tables — it's the pre-calculated percentage of the population 25 and over with a bachelor's degree or higher.
 
 **A1**
 
 ```{r}
 ```
 
-**Q2** Now let's join that data with U.S. Religion Census data. Load the `usreligioncensus_county_2020.csv` file and filter it for Maryland counties. Then join it to your education data, and calculate the correlation between educational attainment and religious adherence (the percentage of the population claimed as adherents). What do you find? Write a sentence interpreting the results.
+**Q2** Now let's join that data with U.S. Religion Census data. Load the `usreligioncensus_county_2020.csv` file and filter it for Maryland counties. Then join it to your education data. Look at the top 5 counties by educational attainment and the bottom 5. How do their religious adherence rates compare? Write a sentence describing what you see.
 
 **A2**
 
 ```{r}
 ```
 
-**Q3** Let's explore religious diversity and racial/ethnic diversity.
-
-First, use the ACS to get the following variables for Maryland counties: - Total population - White alone population (not Hispanic/Latino) - Black or African American alone population - Hispanic or Latino population - Asian alone population
-
-Then calculate the percentage of each racial/ethnic group for each county.
-
-Finally, join this with the U.S. Religion Census data and calculate the correlation between: 1. The percentage of non-Hispanic white population and the religious diversity index 2. The percentage of Hispanic population and the religious diversity index
-
-What patterns do you observe? Which racial/ethnic composition seems most associated with religious diversity?
+**Q3** Using your joined Maryland county data, find the 5 most and 5 least religiously diverse counties based on the Diversity Index Value. Show the largest religious body by number of adherents and the median household income (you'll need to get income from the ACS and join it in) for those counties. What patterns do you notice about which religious groups dominate in more vs. less diverse counties?
 
 **A3**
 
 ```{r}
 ```
 
-**Q4** The U.S. Religion Census has a "Largest Body by \# of Adherents" column that shows which religious group has the most adherents in each county.
-
-Use the ACS to get median household income for Maryland counties, then join it with the religion census data. Group the counties by their largest religious body, and for each religious group, calculate: - The number of counties where that group is dominant - The average median household income in those counties - The average percentage of adherents in those counties
-
-Which religious groups tend to be dominant in wealthier counties? Which in less wealthy counties?
+**Q4** Is there a relationship between wealth and the number of religious congregations in a community? Using your joined data that includes median household income, look at the "Congregations Per 100,000 Population" column. Arrange the counties by congregations per capita. Do the counties with the most congregations per capita tend to be wealthier or less wealthy? What about the counties with the fewest? Write a sentence describing the pattern.
 
 **A4**
 
 ```{r}
 ```
 
-**Q5** Let's look at housing characteristics and religious adherence.
+**Q5** Let's compare religion and income across all states. Get state-level median household income from the ACS and join it with the state-level religion census data (`usreligioncensus_state_2020.csv`). Remember you'll need to make the FIPS codes match in format, as we did in the pre_lab.
 
-Use the ACS to get the following for Maryland counties: - Median home value (hint: search for "median value" in the variables) - Percentage of housing units that are renter-occupied (you'll need total renter-occupied and total occupied units)
-
-Join this with the religion census data. Is there a relationship between homeownership rates and religious adherence? Between home values and religious diversity? Calculate the relevant correlations and interpret what you find.
+Arrange the states by adherence rate. Among the 10 states with the highest adherence rates, what is the average median household income? Among the 10 states with the lowest adherence rates, what is the average? What regional patterns do you notice in each group?
 
 **A5**
 
 ```{r}
 ```
 
-**Q6** Now let's examine a different state. Pick any state other than Maryland (you can use a state you're interested in or have lived in).
-
-Get ACS data for poverty rates by county in that state (look for variables related to income in the past 12 months below poverty level). Join this with the U.S. Religion Census data for that state's counties.
-
-Analyze the relationship between poverty and religion. Questions to explore: - Is there a correlation between poverty rates and religious adherence? - Do counties with higher poverty have different levels of religious diversity? - Are certain religious bodies more dominant in high-poverty vs. low-poverty counties?
-
-Write a few sentences about what you discover.
-
-**A6**
-
-```{r}
-```
-
-**Q7** Let's explore congregations per capita and demographic characteristics.
-
-Choose 3-4 ACS variables that interest you (could be education, age, race/ethnicity, language spoken at home, foreign-born population, disability status, etc.). Get that data for Maryland counties and join it with the religion census data.
-
-Focus on the "Congregations Per 100,000 Population" column from the religion census. Which demographic factors seem most associated with having more or fewer congregations per capita?
-
-Create a small table showing the correlations between your chosen variables and congregations per capita, and write a few sentences interpreting the patterns.
-
-**A7**
-
-```{r}
-```
-
-**Q8** State-level analysis: Get ACS data for educational attainment (bachelor's degree or higher) for all U.S. states. Join this with the state-level religion census data (`usreligioncensus_state_2020.csv`).
-
-Create a scatter plot or identify the states with: - High education, high religious adherence - High education, low religious adherence - Low education, high religious adherence - Low education, low religious adherence
-
-Define "high" and "low" based on whether they're above or below the median. What regional or cultural patterns do you notice?
-
-**A8**
-
-```{r}
-```
-
-**Q9** The religion census includes data on the largest religious body in each geographic area.
-
-Using Maryland county data, find which religious bodies are the "Largest Body by \# of Congregations" in the most counties. Then, for each of the top 3-4 most common largest bodies, get their average religious diversity index value.
-
-Does having a particular religious group as dominant correlate with more or less religious diversity? What might explain this pattern?
-
-**A9**
-
-```{r}
-```
-
-**Q10** Your own question: Come up with your own question that combines Census API data with U.S. Religion Census data. Your question should:
+**Q6** Your own question: Come up with your own question that combines Census API data with U.S. Religion Census data. Your question should:
 
 -   Use at least one ACS variable we haven't used in previous questions
--   Involve either correlation analysis, grouping, or comparison across geographic areas
--   Require a join between Census and religion data
+-   Involve a join between Census and religion data
+-   Include grouping, ranking, or comparison across geographic areas
 
 Write your question, show your code, and provide an answer with interpretation.
 
-**A10**
+**A6**
 
 Your question:
 

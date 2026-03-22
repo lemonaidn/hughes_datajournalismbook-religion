@@ -1,7 +1,7 @@
 ---
 title: "pre_lab_07.Rmd"
 author: "derek willis"
-date: "2026-02-15"
+date: "2026-03-15"
 output: html_document
 ---
 
@@ -28,17 +28,15 @@ We're going to use a library called `tidycensus` which makes calls to the Census
 
 To use the API, you need to [an API key from the Census Bureau](https://api.census.gov/data/key_signup.html). It takes a few minutes and you need to activate your key via email. Once you have your key, you need to set that for this session. Just FYI: Your key is your key. Do not share it.
 
-### Task 2: Sign up for an API Key and set it
+### Task 2: Set your API Key
 
-**Task** Replace YOUR KEY HERE in the codeblock below with your Census API Key (leave the quotemarks).
+**Task** In the R Console below (not in this notebook), run the following command, replacing YOUR KEY HERE with your Census API Key:
 
-```{r echo=FALSE}
-#census_api_key("YOUR KEY HERE", install=TRUE)
-```
+`census_api_key("YOUR KEY HERE", install=TRUE)`
 
-The `install=TRUE` part saves your key for future use.
+This will save your key to your .Renviron file so it's available for future sessions. You only need to do this once. After running it, restart R (Session -> Restart R) so the key takes effect.
 
-So to give you some idea of how complicated the data is, let's pull up just one file from the decennial Census. We'll use Summary File 1, or SF1. That has the major population and housing stuff.
+To give you some idea of how complicated the data is, let's pull up just one file from the decennial Census. We'll use Summary File 1, or SF1. That has the major population and housing stuff.
 
 ### Task 3: Examining Census data
 
@@ -118,7 +116,7 @@ View(pl)
 
 In 2010, the Census Bureau replaced SF3 with the American Community Survey. The Good News is that the data would be updated on a rolling basis. The bad news is that it's more complicated because it's more like survey data with a large sample. That means there's margins of error and confidence intervals to worry about.
 
-What is Maryland's richest county?
+## What is Maryland's richest county?
 
 We can measure this by median household income. That variable is `B19013_001`, so we can get that data like this (I'm narrowing it to the top 20 for simplicity):
 
@@ -130,7 +128,7 @@ We can measure this by median household income. That variable is `B19013_001`, s
 md <- get_acs(geography = "county",
               variables = c(medincome = "B19013_001"),
               state = "MD",
-              year = 2021)
+              year = 2024)
 
 md <- md |> arrange(desc(estimate)) |> top_n(20, estimate)
 
@@ -150,7 +148,7 @@ md |>
   geom_errorbarh(aes(xmin = estimate - moe, xmax = estimate + moe)) +
   geom_point(color = "red") +
   labs(title = "Household income by county in Maryland",
-       subtitle = "2017-2021 American Community Survey",
+       subtitle = "2020-2024 American Community Survey",
        y = "",
        x = "ACS estimate (bars represent margin of error)")
 ```
@@ -167,13 +165,13 @@ Let's ask another question of the ACS -- did any counties lose income from the t
 
 Let's re-label our first household income data.
 
-**Task** Run the following codeblock to retrieve Maryland county median income from 2010 and from 2021.
+**Task** Run the following codeblock to retrieve Maryland county median income from 2010 and from 2024.
 
 ```{r}
-md21 <- get_acs(geography = "county",
+md24 <- get_acs(geography = "county",
               variables = c(medincome = "B19013_001"),
               state = "MD",
-              year = 2021)
+              year = 2024)
 
 md10 <- get_acs(geography = "county",
               variables = c(medincome = "B19013_001"),
@@ -183,23 +181,23 @@ md10 <- get_acs(geography = "county",
 
 What we're going to do next is a lot, but each step is simple. We're going to join the data together, so each county has one line of data. Then we're going to rename some fields that repeat. Then we're going to calculate the minimum and maximum value of the estimate using the margin of error. That'll help us later. After that, we're going to calculate a percent change and sort it by that change.
 
-**Task** Run the following codeblock to join the data, rename the population estimates and then calculate the values we need. Notice how we select *after* we do the initial calculations so we only see the columns we're interested in (and drop the ones we don't want to see). Also note how the select function has the minus sign (-) in front of some columns? That means we don't want to see them in our result. Which jurisdictions saw the largest increases in median income? Did any counties see their median incomes fall from 2010-2021? **Answer**
+**Task** Run the following codeblock to join the data, rename the population estimates and then calculate the values we need. Notice how we select *after* we do the initial calculations so we only see the columns we're interested in (and drop the ones we don't want to see). Also note how the select function has the minus sign (-) in front of some columns? That means we don't want to see them in our result. Which jurisdictions saw the largest increases in median income? What's the most interesting county here? **Answer**
 
 ```{r}
 md10 |>
-  # join md10 to md21 using the shared GEOID and NAME columns
-  inner_join(md21, by=c("GEOID", "NAME")) |>
-  # rename the first estimate to clarify that it's from 2010 and the second estimate to clarify that it's from 2021
-  rename(estimate2010=estimate.x, estimate2021=estimate.y) |>
-  mutate(min2010 = estimate2010-moe.x, max2010 = estimate2010+moe.x, min2020 = estimate2021-moe.y, max2021 = estimate2021+moe.y) |>
+  # join md10 to md24 using the shared GEOID and NAME columns
+  inner_join(md24, join_by(GEOID, NAME)) |>
+  # rename the first estimate to clarify that it's from 2010 and the second estimate to clarify that it's from 2024
+  rename(estimate2010=estimate.x, estimate2024=estimate.y) |>
+  mutate(min2010 = estimate2010-moe.x, max2010 = estimate2010+moe.x, min2024 = estimate2024-moe.y, max2024 = estimate2024+moe.y) |>
   select(-variable.x, -variable.y, -moe.x, -moe.y) |>
-  mutate(change = ((estimate2021-estimate2010)/estimate2010)*100) |>
+  mutate(change = ((estimate2024-estimate2010)/estimate2010)*100) |>
   arrange(desc(change))
 ```
 
 ## Joining Census Data with U.S. Religion Census Data
 
-Now that we've learned how to work with Census API data, let's combine it with data from the 2020 U.S. Religion Census. This will let us explore the relationship between demographic characteristics and religious adherence patterns.
+Now that we've learned how to work with Census API data, let's combine it with data from the 2020 U.S. Religion Census (alas, not a Census Bureau project). This will let us explore the relationship between demographic characteristics and religious adherence patterns.
 
 The key to joining these datasets is the FIPS code - a standardized geographic identifier used by the Census Bureau. State FIPS codes are 2 digits, and county FIPS codes are 5 digits (state + county).
 
@@ -240,7 +238,7 @@ religion_state_clean <- religion_state |>
 
 # Join the datasets
 state_religion_combined <- state_pop_2020 |>
-  inner_join(religion_state_clean, by = c("GEOID" = "State Code"))
+  inner_join(religion_state_clean, join_by(GEOID == `State Code`))
 
 # View the combined data
 state_religion_combined |>
@@ -248,33 +246,14 @@ state_religion_combined |>
   arrange(desc(`Adherents as % of Population`))
 ```
 
-### Task 10: Explore State Religious Diversity
+### Task 10: Join County-Level Data for Maryland
 
-The U.S. Religion Census calculates a diversity index that measures how religiously diverse each state is. Let's see if there's a relationship between a state's population and its religious diversity.
+Now let's work with county-level data to explore Maryland specifically. We'll join ACS income data with religion census data to see if wealthier counties differ from less wealthy ones in their religious characteristics.
 
-**Task** Run the following code to examine religious diversity by state. Do larger states tend to be more or less religiously diverse? **Answer**
-
-```{r}
-state_religion_combined |>
-  select(NAME, value, `Diversity Index Value`, Adherents, `Adherents as % of Population`) |>
-  arrange(desc(`Diversity Index Value`)) |>
-  head(10)
-
-# Compare to least diverse
-state_religion_combined |>
-  select(NAME, value, `Diversity Index Value`, Adherents, `Adherents as % of Population`) |>
-  arrange(`Diversity Index Value`) |>
-  head(10)
-```
-
-### Task 11: Join County-Level Data
-
-Now let's work with county-level data to explore Maryland counties specifically. We'll join ACS income data with religion census data to see if there's a relationship between median household income and religious adherence.
-
-**Task** Run the following code to get Maryland county data from both sources and join them. What patterns do you notice? **Answer**
+**Task** Run the following code to get Maryland county data from both sources and join them. Do the wealthiest counties tend to have higher or lower rates of religious adherence? **Answer**
 
 ```{r}
-# Get Maryland county median income (we already have this from earlier, but let's be explicit)
+# Get Maryland county median income
 md_income <- get_acs(
   geography = "county",
   variables = c(medincome = "B19013_001"),
@@ -289,96 +268,10 @@ md_religion <- religion_county |>
 
 # Join the data
 md_combined <- md_income |>
-  inner_join(md_religion, by = c("GEOID" = "FIPS"))
+  inner_join(md_religion, join_by(GEOID == FIPS))
 
 # Examine the relationship between income and religious adherence
 md_combined |>
   select(NAME, estimate, `County Name`, `Adherents as % of Population`, `Diversity Index Value`, Congregations) |>
   arrange(desc(estimate))
-```
-
-### Task 12: Analyze Maryland Counties
-
-Let's dig deeper into the Maryland data. We can look at which counties have the most religious diversity and how that relates to other characteristics.
-
-**Task** Run the following code to find the most and least religiously diverse counties in Maryland. Then look at the relationship between median income and religious diversity. What do you observe? **Answer**
-
-```{r}
-# Most diverse Maryland counties
-md_combined |>
-  select(NAME, estimate, `Diversity Index Value`, `Adherents as % of Population`, `Largest Body by # of Adherents`) |>
-  arrange(desc(`Diversity Index Value`)) |>
-  head(10)
-
-# Least diverse Maryland counties
-md_combined |>
-  select(NAME, estimate, `Diversity Index Value`, `Adherents as % of Population`, `Largest Body by # of Adherents`) |>
-  arrange(`Diversity Index Value`) |>
-  head(10)
-
-# Calculate correlation between income and diversity
-md_combined |>
-  summarize(
-    correlation = cor(estimate, `Diversity Index Value`, use = "complete.obs")
-  )
-```
-
-### Task 13: Congregations Per Capita
-
-Let's explore whether wealthier counties have more or fewer congregations per capita.
-
-**Task** Run the following code to calculate and examine the relationship between median income and congregations per 100,000 population. What pattern emerges? **Answer**
-
-```{r}
-md_combined |>
-  select(NAME, estimate, `Congregations Per 100,000 Population`, `Adherents as % of Population`) |>
-  arrange(desc(`Congregations Per 100,000 Population`)) |>
-  head(10)
-
-# Look at correlation
-md_combined |>
-  summarize(
-    correlation = cor(estimate, `Congregations Per 100,000 Population`, use = "complete.obs")
-  )
-```
-
-### Task 14: Compare Across States
-
-Finally, let's use what we've learned to compare religious characteristics across states. We'll get ACS data for median household income by state and join it with the religion census data.
-
-**Task** Run the following code to get state income data and combine it with religion data. Which states have high adherence rates but lower incomes? Which have high incomes but lower adherence? **Answer**
-
-```{r}
-# Get state median household income
-state_income <- get_acs(
-  geography = "state",
-  variables = c(medincome = "B19013_001"),
-  year = 2021
-)
-
-# Join with religion data
-state_combined_full <- state_income |>
-  inner_join(religion_state_clean, by = c("GEOID" = "State Code"))
-
-# High adherence, lower income
-state_combined_full |>
-  filter(`Adherents as % of Population` >= "60%") |>
-  select(NAME, estimate, `Adherents as % of Population`, `Diversity Index Value`, `Largest Body by # of Adherents`) |>
-  arrange(estimate) |>
-  head(10)
-
-# High income, lower adherence
-state_combined_full |>
-  filter(`Adherents as % of Population` <= "40%") |>
-  select(NAME, estimate, `Adherents as % of Population`, `Diversity Index Value`) |>
-  arrange(desc(estimate)) |>
-  head(10)
-```
-
-### Task 15: Your Own Analysis
-
-**Task** Come up with your own question that combines Census API data with U.S. Religion Census data. Write the question, the code to answer it, and your interpretation. **Answer**
-
-```{r}
-# Your code here
 ```
