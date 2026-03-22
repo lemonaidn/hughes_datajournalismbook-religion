@@ -42,7 +42,6 @@ Let's start with the absolute basics of geographic data: loading and viewing. Lo
 library(tidyverse)
 library(sf)
 library(janitor)
-#library(maptools)
 ```
 
 First: an aside on geographic data. There are many formats for geographic data, but data type you'll see the most is called the shapefile. It comes from a company named ERSI, which created the most widely used GIS software in the world. For years, they were the only game in town, really, and the shapefile became ubiquitous, especially so in government and utilities.
@@ -53,7 +52,7 @@ The data we're going to be working with is a Shapefile of Maryland zip codes fro
 
 ### Task: Load the Maryland zip code map data.
 
-Simlar to `readr`, the `sf` library has functions to read geographic data. In this case, we're going to use `st_read` to read in our zip code data. And then glimpse it to look at the columns.
+Similar to `readr`, the `sf` library has functions to read geographic data. In this case, we're going to use `st_read` to read in our zip code data. And then glimpse it to look at the columns.
 
 ### Task: Load data
 
@@ -170,50 +169,71 @@ ggplot() +
 
 Notice the subtle differences at the boundaries?
 
-Let's dive back into zip codes and this time bring along data on notices of intent to foreclosure by zip code (found at <https://opendata.maryland.gov/Housing/Maryland-Notices-of-Intent-to-Foreclose-by-Zip-Cod/ftsr-vapt>). Where are these foreclosure notices appearing?
+Now let's do something more interesting with geographic data. We're going to map the locations of churches in Prince George's County using data that includes geocoded addresses. This will introduce a new concept: turning a regular dataframe with latitude and longitude columns into geographic point data.
 
-### Task: Run code to load the foreclosure notice data.
-
-**Task** Run the following code. Describe the output in the space below. **Answer**
-
-```{r}
-foreclosure_zip <- read_csv("data/Maryland_Notices_of_Intent_to_Foreclose_by_Zip_Code.csv") |> clean_names()
-foreclosure_zip_march_2023 <- foreclosure_zip |> 
-  select(zip, march_2023)
-
-View(foreclosure_zip_march_2023)
-```
-
-Now we can join the zip codes to the foreclosure data.
-
-### Task: Run code to join the zip code shapes with the foreclosure notice data
+### Task: Run code to load the PG County church data.
 
 **Task** Run the following code. Describe the output in the space below. **Answer**
 
 ```{r}
-zip_codes_with_foreclosures <- md_zips |> left_join(foreclosure_zip_march_2023, join_by(ZIPCODE1==zip))
+pg_churches <- read_csv("data/pg_churches_geocoded.csv")
+
+glimpse(pg_churches)
 ```
 
-Now we can use color to distinguish zip codes from each other. Let's use the number of foreclosure notices to start with:
+This is a regular dataframe -- it has columns for the church name, address, and importantly, latitude and longitude values from geocoding. But R doesn't yet know those lat/lon columns represent geographic coordinates. We need to convert this dataframe into an sf object using `st_as_sf()`, which tells R which columns contain the coordinates and what coordinate reference system (CRS) they use.
+
+### Task: Run code to convert the church data to geographic points
+
+**Task** Run the following code. Describe the output in the space below. **Answer**
+
+```{r}
+pg_churches_sf <- pg_churches |>
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+glimpse(pg_churches_sf)
+```
+
+Notice how the dataframe now has a `geometry` column of type POINT instead of the separate lat and lon columns. The CRS 4326 is the standard coordinate system used by GPS -- it's what most geocoded data uses.
+
+Now let's plot these church locations. First, we'll filter our Maryland counties down to just Prince George's County to use as a base layer, then add the church points on top.
+
+### Task: Run code
+
+**Task** Run the following code. Describe the output in the space below. What spatial patterns do you notice? **Answer**
+
+```{r}
+pg_county <- md_counties |>
+  filter(NAME == "Prince George's")
+
+ggplot() +
+  geom_sf(data=pg_county) +
+  geom_sf(data=pg_churches_sf) +
+  theme_minimal()
+```
+
+You should see the outline of Prince George's County with dots representing each church. Are they evenly distributed? Are there clusters? Think about what you know about the county's geography -- where are the more densely populated areas?
+
+Let's make this more informative by adding color. If our data has an NTEE code or denomination column, we can use it to distinguish different types of churches:
 
 ### Task: Run code
 
 **Task** Run the following code. Describe the output in the space below. **Answer**
 
 ```{r}
-county_centroids <- st_centroid(zip_codes_with_foreclosures)
-
 ggplot() +
-  geom_sf(data=zip_codes_with_foreclosures, aes(fill=march_2023)) +
-  scale_colour_viridis_b(option="magma") +
-  theme_minimal()
+  geom_sf(data=pg_county) +
+  geom_sf(data=pg_churches_sf, aes(color=NTEE_CD), size=2, alpha=0.7) +
+  theme_minimal() +
+  labs(title="Churches in Prince George's County",
+       color="NTEE Code")
 ```
 
-With these changes, what can we make out here? First, you can pretty easily spot zip codes with a high number of foreclosures - in Prince George's County in particular, along with zip codes around Baltimore and in places in the northeast and northwest parts of the state.
+This is a common pattern in data journalism: layering point data on top of boundary data to see geographic patterns. You could do similar things with any geocoded data -- locations of schools, hospitals, crime incidents, or in this case, houses of worship.
 
 ## Chapter 21
 
-In the previous chapter, we looked at foreclosure notices by zip codes to find patterns in Maryland. Let's go further and, instead of using raw numbers, use percentages based on the number of owner-occupied housing units in each county.
+In the previous chapter, we looked at churches in Prince George's County as point data. Now let's zoom out and look at patterns of religious adherence across all Maryland counties using a choropleth map -- a map where the color of each geographic area represents a data value.
 
 First, let's load the libraries we'll need. We're also going to load tidycensus and set an API key for tidycensus.
 
@@ -229,16 +249,16 @@ library(tidycensus)
 #census_api_key("549950d36c22ff16455fe196bbbd01d63cfbe6cf")
 ```
 
-For the rest of this chapter, we're going to work on building a map that will help us gain insight into geographic patterns in foreclosure notices by county in Maryland. What geographic patterns can we identify?
+For the rest of this chapter, we're going to work on building a map that will help us gain insight into geographic patterns in religious adherence by county in Maryland. What geographic patterns can we identify?
 
-First, we'll go out and get the county foreclosure notices and population data for each county using tidycensus. The variable for total population is B01001_001
+First, we'll load the county-level religion data from the U.S. Religion Census 2020, which includes the number of congregations and adherents for each Maryland county. We'll also get population data for each county using tidycensus. The variable for total population is B01001_001.
 
 ### Task: Run code
 
 **Task** Run the following code. Describe the output in the space below. **Answer**
 
 ```{r}
-md_county_notices <- read_csv("data/Maryland_Foreclosure_Data_by_County.csv") |> slice(1) |> pivot_longer(cols=-c('Date', 'Type'), names_to='county', values_to = 'notices')
+md_county_religion <- read_csv("data/md_religion_choropleth.csv")
 
 md_county_population <- get_acs(geography = "county",
               variables = c(population = "B01001_001"),
@@ -246,7 +266,7 @@ md_county_population <- get_acs(geography = "county",
               state = "MD")
 ```
 
-Ultimately, we're going to join this county table with population with foreclosure notices by county, and then calculate a percentage. But remember, we then want to visualize this data by drawing a zip code map that helps us pick out trends. Thinking ahead, we know we'll need a zip code map shapefile. Fortunately, we can pull this geometry information right from tidycensus at the same time that we pull in the population data by adding "geometry = TRUE" to our get_acs function.
+Ultimately, we're going to join this county table with population data to the religion data by county, and then calculate a per-capita rate. But remember, we then want to visualize this data by drawing a county map that helps us pick out trends. Thinking ahead, we know we'll need a county map shapefile. Fortunately, we can pull this geometry information right from tidycensus at the same time that we pull in the population data by adding "geometry = TRUE" to our get_acs function.
 
 ### Task: Run code
 
@@ -264,9 +284,9 @@ md_county_population
 
 We now have a new column, geometry, that contains the "MULTIPOLYGON" data that will draw an outline of each county when we go to draw a map.
 
-The next step will be to join our population data to our foreclosure data on the county column.
+The next step will be to join our population data to our religion data on the county column.
 
-But there's a problem. The column in our population data that has county names is called "NAME", and it has the full name of the county spelled out in title case -- first word capitalized and has "County" and "Maryland" in it. The foreclosure data just has the name of the county. For example, the population data has "Anne Arundel County, Maryland" and the foreclosure data has "Anne Arundel County".
+But there's a problem. The column in our population data that has county names is called "NAME", and it has the full name of the county spelled out in title case -- first word capitalized and has "County" and "Maryland" in it. The religion data just has the name of the county. For example, the population data has "Anne Arundel County, Maryland" and the religion data has "Anne Arundel County".
 
 ### Task: Run code
 
@@ -275,7 +295,7 @@ But there's a problem. The column in our population data that has county names i
 ```{r}
 md_county_population
 
-md_county_notices
+md_county_religion
 ```
 
 If they're going to join properly, we need to clean one of them up to make it match the other.
@@ -297,37 +317,37 @@ md_county_population <- md_county_population |>
 md_county_population
 ```
 
-Now we can join them!
+Now we can join them. We'll need to make sure the county names match. Let's check the religion data column name:
 
 ### Task: Run code
 
 **Task** Run the following code. Describe the output in the space below. **Answer**
 
 ```{r}
-md_pop_with_foreclosures <- md_county_population |>
-  left_join(md_county_notices, join_by(county))
+md_pop_with_religion <- md_county_population |>
+  left_join(md_county_religion, join_by(county == `County Name`))
 
-md_pop_with_foreclosures
+md_pop_with_religion
 ```
 
-Our final step before visualization, let's calculate the number of foreclosure notices per 1000 population and sort from highest to lowest to see what trends we can identify just from the table.
+Our final step before visualization, let's calculate the number of congregations per 10,000 population and sort from highest to lowest to see what trends we can identify just from the table.
 
 ### Task: Run code
 
 **Task** Run the following code. Describe the output in the space below. **Answer**
 
 ```{r}
-md_pop_with_foreclosures <- md_county_population |>
-  left_join(md_county_notices, join_by(county)) |> 
-  mutate(rate = notices/population*1000) |>
+md_pop_with_religion <- md_county_population |>
+  left_join(md_county_religion, join_by(county == `County Name`)) |>
+  mutate(rate = Congregations/population*10000) |>
   arrange(desc(rate))
 
-md_pop_with_foreclosures
+md_pop_with_religion
 ```
 
-Let's take a look at the result of this table. The variances in the rates aren't huge, but there are some clear differences: Charles County and Prince George's County have higher rates, followed by Baltimore City and some more rural counties.
+Let's take a look at the result of this table. The variances in the rates are notable: some rural counties have significantly higher rates of congregations per capita than more suburban or urban counties. Think about why that might be -- smaller communities often have more churches per person than large ones.
 
-Okay, now let's visualize. We're going to build a choropleth map, with the color of each county -- the fill -- set according to the number of notices per 1K population on a color gradient.
+Okay, now let's visualize. We're going to build a choropleth map, with the color of each county -- the fill -- set according to the number of congregations per 10K population on a color gradient.
 
 ### Task: Run code
 
@@ -340,7 +360,7 @@ county_centroids_df <- as.data.frame(st_coordinates(county_centroids))
 county_centroids_df$NAME <- county_centroids$NAME
 
 ggplot() +
-  geom_sf(data=md_pop_with_foreclosures, aes(fill=rate)) +
+  geom_sf(data=md_pop_with_religion, aes(fill=rate)) +
   geom_text(aes(x = X, y = Y, label = NAME), data = county_centroids_df, size = 3, check_overlap = TRUE) +
   theme_minimal()
 ```
@@ -353,7 +373,7 @@ This map is okay, but the color scale makes it hard to draw fine-grained differe
 
 ```{r}
 ggplot() +
-  geom_sf(data=md_pop_with_foreclosures, aes(fill=rate)) +
+  geom_sf(data=md_pop_with_religion, aes(fill=rate)) +
   theme_minimal() +
   scale_fill_viridis_b(option="magma")
 ```
@@ -368,7 +388,7 @@ So let's change the color scale to a "log" scale, which will help us see those d
 
 ```{r}
 ggplot() +
-  geom_sf(data=md_pop_with_foreclosures, aes(fill=rate)) +
+  geom_sf(data=md_pop_with_religion, aes(fill=rate)) +
   theme_minimal() +
   scale_fill_viridis_b(option="magma",trans = "log")
 ```

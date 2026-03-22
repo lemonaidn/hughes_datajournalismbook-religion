@@ -13,36 +13,48 @@ knitr::opts_chunk$set(echo = TRUE)
 
 **Task** Create a codeblock and load appropriate packages and settings for this lab. We'll be making some charts, working with dates and retrieving Census data.
 
+```{r}
+# Turn off scientific notation
+options(scipen=999)
+
+# load libraries
+```
+
 ## Load and modify data
 
 **Task** Create a codeblock and load the following data from the data folder:
 
--   Prince George's County 911 Overdose Calls
+-   megachurches.csv (data on U.S. megachurches from the Hartford Institute for Religion Research)
+-   clergy_contribs_2024.csv (Federal Election Commission data on political contributions by clergy)
+-   usreligioncensus_county_2020.csv (county-level data from the U.S. Religion Census)
 
-You will need to create columns for the date, week and month based on the existing `datetime` column.
+You will need to use `clean_names()` on the data and you will need to create columns for the date, week and month based on the existing `contribution_receipt_date` column in the clergy contributions data. For the county religion census data, you will need to use `parse_number()` on at least the `adherents_as_percent_of_population` column.
+
+```{r}
+```
 
 ## Questions
 
-**Q1.** Which month saw the greatest percentage of total calls? Create a dataframe that calculates the percentage of all calls that each month's calls represents. Make a bar chart from that dataframe. Your bar chart must have:
+**Q1.** Which denomination has the greatest share of all megachurches? Create a dataframe that calculates the percentage of all megachurches that each denomination represents. Filter it to show the top 10 denominations. Make a bar chart from that dataframe. Your bar chart must have:
 
 -   A clear title that states the main idea/finding
--   Good labels for the x & y axis and a caption for the source, which is Prince George's County EMS.
+-   Good labels for the x & y axis and a caption for the source, which is the Hartford Institute for Religion Research.
 -   Readable bars - the values shouldn't be overlapping
 
-Compare the results here to those from the pre_lab_08 bar chart - are there major differences in the months with the highest and lowest figures? Describe that below.
+Compare the results here to those from the pre_lab_08 bar chart of states by congregations - are there major differences in how denominations are distributed among megachurches vs. congregations overall? Describe that below.
 
 **A1.**
 
 ```{r}
 ```
 
-**Q2.** Let's visualize this data on a weekly basis using a line chart. As in Q1, generate a dataframe with the total number of calls for each week, and then create a line chart to show the distribution of calls over time. Your line chart must have:
+**Q2.** Let's visualize clergy political contributions over time using a line chart. Generate a dataframe with the total amount of contributions for each month, and then create a line chart to show the distribution of contributions over time. Your line chart must have:
 
 -   A clear title that states the main idea/finding
--   Good labels for the x & y axis and a caption for the source, which is Prince George's County EMS.
+-   Good labels for the x & y axis and a caption for the source, which is the Federal Election Commission.
 -   Readable labels
 
-Describe the pattern of results; you may want to look at the data to dig into particular outliers.
+Describe the pattern of results; are there particular months that stand out? What might explain the pattern you see?
 
 **A2.**
 
@@ -59,16 +71,16 @@ knitr::include_graphics("https://www.mathsisfun.com/data/images/scatter-ice-crea
 
 We're going to use a scatterplot a little differently, to get a visual sense of two key variables:
 
-Our question is: does the median income in a zip code have any relationship to the number of overdose 911 calls in that zip code?
+Our question is: does the median household income in a Maryland county have any relationship to the percentage of the population that are religious adherents?
 
 To answer this question, do the following:
 
-1.  Generate a dataframe with the number of 911 calls for each zip code.
-2.  Get data from the Census Bureau showing median household income for Maryland zip codes.
-3.  Join those two dataframes on their zip code columns, starting with the 911 calls dataframe.
-4.  Make a scatterplot showing the total calls and median income. I didn't show you how to do this, so look it up! Googling "ggplot scatterplot" is a good start.
+1.  Filter the county religion census data to Maryland counties only.
+2.  Get data from the Census Bureau showing median household income for Maryland counties using tidycensus.
+3.  Join those two dataframes on their FIPS/GEOID columns, starting with the religion census dataframe.
+4.  Make a scatterplot showing the adherents percentage and median income. I didn't show you how to do this, so look it up! Googling "ggplot scatterplot" is a good start.
 5.  Give it an appropriate title, source, and x and y axis titles.
-6.  Add a label for each point that shows the zip code using geom_text() - see some examples of its use at <https://ggplot2.tidyverse.org/reference/geom_text.html#ref-examples>. Try to make the names as easy to read as possible by avoiding overlap.
+6.  Add a label for each point that shows the county name using geom_text() - see some examples of its use at <https://ggplot2.tidyverse.org/reference/geom_text.html#ref-examples>. Try to make the names as easy to read as possible by avoiding overlap.
 7.  In the answer space below, describe what you see and answer the questions posed above. In a general sense, what do you think this means? Feel free to consider the actual raw values: how would you report out the main point(s) of this chart?
 
 **A3.**

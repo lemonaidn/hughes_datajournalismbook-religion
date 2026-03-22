@@ -6,7 +6,7 @@ But simple stuff -- and even some slightly complicated stuff -- can be done with
 
 The tool we're going to use is called [Datawrapper](https://www.datawrapper.de/).
 
-First, let's get some data and work with it. Let's use a simple CSV of total votes cast for four Maryland Republicans who ran for statewide office in the 2022 general election. Let's look at it.
+First, let's get some data and work with it. We'll use county-level data from the U.S. Religion Census 2020 — a project that counts congregations and religious adherents across every U.S. county through denominational reporting. We've already filtered it to Maryland's 24 jurisdictions. Let's look at it.
 
 ```{r}
 #| output: false
@@ -14,11 +14,11 @@ library(tidyverse)
 ```
 
 ```{r, message=FALSE}
-md_gop_cands <- read_csv("data/md_gop_cands.csv")
+md_religion <- read_csv("data/md_religion_bar.csv")
 ```
 
 ```{r}
-head(md_gop_cands)
+head(md_religion)
 ```
 
 ## Datawrapper
@@ -33,21 +33,21 @@ Once logged in, you'll click on New Chart.
 knitr::include_graphics("images/datawrapper1.png")
 ```
 
-The first thing we'll do is upload our CSV. Click on XLS/CSV and upload the file.
+The first thing we'll do is upload our CSV. Click on XLS/CSV and upload the `md_religion_bar.csv` file.
 
 ```{r, echo=FALSE}
 knitr::include_graphics("images/datawrapper2.png")
 ```
 
-Next up is to check and see what Datawrappper did with our data when we uploaded it. As you can see from the text on the left, if it's blue, it's a number. If it's green, it's a date. If it's black, it's text. Red means there's a problem. This data is very clean, so it imports cleanly. Click on the "Proceed" button.
+Next up is to check and see what Datawrapper did with our data when we uploaded it. As you can see from the text on the left, if it's blue, it's a number. If it's green, it's a date. If it's black, it's text. Red means there's a problem. This data is very clean, so it imports cleanly. Click on the "Proceed" button.
 
 ```{r, echo=FALSE}
 knitr::include_graphics("images/datawrapper3.png")
 ```
 
-Now we make a chart. Bar chart comes up by default, which is good, because with totals, that's what we have.
+Now we make a chart. Bar chart comes up by default, which is good, because with congregation totals, that's what we have.
 
-Click on Refine. The first option we want to change is column we're using for the bars, which defaults to "Early Voting". Let's make it "Votes. Let's also choose to sort the bars so that the largest value (and bar appears first). We do that by clicking on the "Sort bars" button.
+Click on Refine. The first option we want to change is the column we're using for the bars — make sure it's set to "Congregations". Let's also choose to sort the bars so that the largest value appears first. We do that by clicking on the "Sort bars" button.
 
 ```{r, echo=FALSE}
 knitr::include_graphics("images/datawrapper4.png")
@@ -55,7 +55,7 @@ knitr::include_graphics("images/datawrapper4.png")
 
 Now we need to annotate our charts. Every chart needs a title, a source line and a credit line. Most need chatter (called description here). Click on the "Annotate" tab to get started.
 
-Really think about the title and description: the title is like a headline and the description is provides some additional context. Another way to think about it: the title is the most important lesson from the graphic, and the description could be the next most important lesson or could provide more context to the title.
+Really think about the title and description: the title is like a headline and the description provides some additional context. Another way to think about it: the title is the most important lesson from the graphic, and the description could be the next most important lesson or could provide more context to the title. The source is the U.S. Religion Census 2020.
 
 ```{r, echo=FALSE}
 knitr::include_graphics("images/datawrapper5.png")
@@ -69,28 +69,28 @@ knitr::include_graphics("images/datawrapper6.png")
 
 ### Making a Map
 
-Let's create a choropleth map - one that shows variations between the percentage of votes received by Wes Moore across Maryland counties. We'll read that in from the data folder.
+Let's create a choropleth map — one that shows variations in religious adherence rates across Maryland counties. We'll read in county-level religion census data, which includes FIPS codes that Datawrapper needs to place each county on a map.
 
 ```{r, message=FALSE}
-md_gov_county <- read_csv("data/md_gov_county.csv")
+md_religion_county <- read_csv("data/md_religion_choropleth.csv")
 ```
 
-In order to make a map, we need to be able to tell Datawrapper that a certain column contains geographic information (besides the name of the county). The easiest way to do that for U.S. maps is to use something called a [FIPS Code](https://www.census.gov/programs-surveys/geography/guidance/geo-identifiers.html). You should read about them so you understand what they are, and think of them as a unique identifier for some geographical entity like a state or county. Our md_gov_county dataframe has a FIPS code for each county, but if you ever need one for a county, this is a solved problem thanks to the Tigris library that we used in pre_lab 9.
+In order to make a map, we need to be able to tell Datawrapper that a certain column contains geographic information (besides the name of the county). The easiest way to do that for U.S. maps is to use something called a [FIPS Code](https://www.census.gov/programs-surveys/geography/guidance/geo-identifiers.html). You should read about them so you understand what they are, and think of them as a unique identifier for some geographical entity like a state or county. Our `md_religion_county` dataframe already has a FIPS code for each county.
 
-We'll need to write code to add columns showing the total number of votes for each county and the percentage of votes received by Wes Moore in each county, then replace the CSV file in the data folder with it
+Right now, the "Adherents as % of Population" column is stored as text with a percent sign (like `"40.88%"`). We need to convert it to a plain number so Datawrapper can use it to color the map.
 
 ```{r}
+md_religion_county <- md_religion_county |>
+  mutate(
+    pct_adherents = as.numeric(str_remove(`Adherents as % of Population`, "%"))
+  )
 
-md_gov_county <- md_gov_county |> 
-  mutate(total = cox + moore + lashar + wallace + harding + write_ins) |> 
-  mutate(pct_moore = moore/total * 100)
-
-write_csv(md_gov_county, "data/md_gov_county_with_percent.csv")
+write_csv(md_religion_county, "data/md_religion_choropleth.csv")
 ```
 
-Go back to Datawrapper and click on "New Map". Click on "Choropleth map" and then choose "USA \>\> Counties (2022)" for the map base and click the Proceed button.
+Go back to Datawrapper and click on "New Map". Click on "Choropleth map" and then choose "USA >> Counties (2022)" for the map base and click the Proceed button.
 
-Now we can upload the `md_gov_county_with_percent.csv` file we just saved using the Upload File button. It should look like the following image:
+Now we can upload the `md_religion_choropleth.csv` file we just saved using the Upload File button. It should look like the following image:
 
 ```{r, echo=FALSE}
 knitr::include_graphics("images/datawrapper7.png")
@@ -102,21 +102,21 @@ We'll need to make sure that Datawrapper understands what the data is and where 
 knitr::include_graphics(rep("images/datawrapper8.png"))
 ```
 
-Click the "Proceed" button (you should have to click it twice, since the first time it will tell you that there's no data for 3,197 counties - the rest of the U.S.). That will take you to the Visualize tab.
+Click the "Proceed" button (you should have to click it twice, since the first time it will tell you that there's no data for 3,210 counties — the rest of the U.S.). That will take you to the Visualize tab.
 
 You'll see that the map currently is of the whole nation, and we only have Maryland data. Let's fix that.
 
-Look for "Hide regions without data" under Appearance, and click the slider icon to enable that feature. You should see a map zoomed into Maryland with some counties in various colors.
+Look for "Crop to data" under Appearance, and click the slider icon to enable that feature. You should see a map zoomed into Maryland with some counties in various colors.
 
 But it's a little rough visually, so let's clean that up.
 
-Look for the "Show color legend" label and add a caption for the legend, which is the horizontal bar under the title. Then click on the "Annotate" tab to add a title, description, data source and byline. The title should represent the headline, while the description should be a longer phrase that tells people what they are looking at.
+Look for the "Show color legend" label and add a caption for the legend, which is the horizontal bar under the title. It represents the range of the data from the lowest adherence rate to the highest. Then click on the "Annotate" tab to add a title, description, data source and byline. The title should represent the headline, while the description should be a longer phrase that tells people what they are looking at. The source is the U.S. Religion Census 2020.
 
 That's better, but check out the tooltip by hovering over a county. It's not super helpful. Let's change the tooltip behavior to show the county name and a better-formatted number.
 
-Click the "Customize tooltips" button so it expands down. Change {{ fips_code }} to {{ county }} and {{ pctmoore }} to {{ FORMAT(pctmoore, "00.0%")}}
+Click the "Customize tooltips" button so it expands down. Change {{ fips_code }} to {{ County Name }} and change the adherents value to {{ FORMAT(pct_adherents, "00.0%")}}.
 
-Experiment with the "Show labels" options to see if you can add county labels to your map.
+Add a note that says that this data comes from denominational self-reporting and may undercount some faith traditions. Experiment with the "Show labels" options to see if you can add county labels to your map.
 
 Ok, that looks better. Let's publish!
 
