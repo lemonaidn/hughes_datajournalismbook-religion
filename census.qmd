@@ -22,7 +22,7 @@ To use the API, you need an API key. To get that, you need to [apply for an API 
 census_api_key("YOUR KEY HERE", install=TRUE)
 ```
 
-The two main functions in tidycensus are `get_decennial`, which retrieves data from the 2000 and 2010 Censuses (and soon the 2020 Census), and `get_acs`, which pulls data from the American Community Survey, a between-Censuses annual survey that provides estimates, not hard counts, but asks more detailed questions. If you're new to Census data, there's [a very good set of slides from Kyle Walker](http://walker-data.com/umich-workshop/census-data-in-r/slides/#1), the creator of tidycensus, and he's working on a [book](https://walker-data.com/census-r/index.html) that you can read for free online.
+The two main functions in tidycensus are `get_decennial`, which retrieves data from the 2000, 2010 and 2020 Censuses, and `get_acs`, which pulls data from the American Community Survey, a between-Censuses annual survey that provides estimates, not hard counts, but asks more detailed questions. If you're new to Census data, there's [a very good set of slides from Kyle Walker](http://walker-data.com/umich-workshop/census-data-in-r/slides/#1), the creator of tidycensus, and he's working on a [book](https://walker-data.com/census-r/index.html) that you can read for free online.
 
 It's important to keep in mind that Census data represents people - you, your neighbors and total strangers. It also requires some level of definitions, especially about race & ethnicity, that may or may not match how you define yourself or how others define themselves.
 
@@ -93,7 +93,7 @@ You may be asking: hey, wasn't there a 2020 Census? Where's that data? The answe
 
 ## The ACS
 
-In 2010, the Census Bureau replaced SF3 with the American Community Survey. The Good News is that the data would be updated on a rolling basis. The bad news is that it's more complicated because it's more like survey data with a large sample. That means there's margins of error and confidence intervals to worry about. By default, using `get_acs` fetches data from the 5-year estimates (currently 2016-2020), but you can specify 1-year estimates for jurisdictions with at least 65,000 people (many counties and cities).
+In 2010, the Census Bureau replaced SF3 with the American Community Survey. The Good News is that the data would be updated on a rolling basis. The bad news is that it's more complicated because it's more like survey data with a large sample. That means there's margins of error and confidence intervals to worry about. By default, using `get_acs` fetches data from the 5-year estimates, but you can specify 1-year estimates for jurisdictions with at least 65,000 people (many counties and cities).
 
 Here's an example using the 5-year ACS estimates:
 
@@ -105,7 +105,7 @@ We can measure this by median household income. That variable is `B19013_001`, s
 md <- get_acs(geography = "county",
               variables = c(medincome = "B19013_001"),
               state = "MD",
-              year = 2020)
+              year = 2024)
 
 md <- md |> arrange(desc(estimate)) |> top_n(20, estimate)
 
@@ -122,7 +122,7 @@ md |>
   geom_errorbarh(aes(xmin = estimate - moe, xmax = estimate + moe)) +
   geom_point(color = "red") +
   labs(title = "Household income by county in Maryland",
-       subtitle = "2016-2020 American Community Survey",
+       subtitle = "2020-2024 American Community Survey",
        y = "",
        x = "ACS estimate (bars represent margin of error)")
 ```
@@ -134,10 +134,10 @@ Let's ask another question of the ACS -- did any counties lose income from the t
 Let's re-label our first household income data.
 
 ```{r}
-md20 <- get_acs(geography = "county",
+md24 <- get_acs(geography = "county",
               variables = c(medincome = "B19013_001"),
               state = "MD",
-              year = 2020)
+              year = 2024)
 ```
 
 And now we grab the 2010 median household income.
@@ -149,19 +149,19 @@ md10 <- get_acs(geography = "county",
               year = 2010)
 ```
 
-What I'm going to do next is a lot, but each step is simple. I'm going to join the data together, so each county has one line of data. Then I'm going to rename some fields that repeat. Then I'm going to calculate the minimium and maximum value of the estimate using the margin of error. That'll help me later. After that, I'm going to calculate a perent change and sort it by that change.
+What I'm going to do next is a lot, but each step is simple. I'm going to join the data together, so each county has one line of data. Then I'm going to rename some fields that repeat. Then I'm going to calculate the minimum and maximum value of the estimate using the margin of error. That'll help me later. After that, I'm going to calculate a percent change and sort it by that change.
 
 ```{r}
 md10 |>
-  inner_join(md20, by=c("GEOID", "NAME")) |>
-  rename(estimate2010=estimate.x, estimate2020=estimate.y) |>
-  mutate(min2010 = estimate2010-moe.x, max2010 = estimate2010+moe.x, min2020 = estimate2020-moe.y, max2020 = estimate2020+moe.y) |>
+  inner_join(md24, join_by(GEOID, NAME)) |>
+  rename(estimate2010=estimate.x, estimate2024=estimate.y) |>
+  mutate(min2010 = estimate2010-moe.x, max2010 = estimate2010+moe.x, min2024 = estimate2024-moe.y, max2024 = estimate2024+moe.y) |>
   select(-variable.x, -variable.y, -moe.x, -moe.y) |>
-  mutate(change = ((estimate2020-estimate2010)/estimate2010)*100) |>
+  mutate(change = ((estimate2024-estimate2010)/estimate2010)*100) |>
   arrange(change)
 ```
 
-So according to this, Somerset and Caroline counties had the smallest change between 2010 and 2020, while all other jurisdictions saw double-digit percentage increases.
+So according to this, Somerset and Caroline counties had the smallest change between 2010 and 2024, while all other jurisdictions saw double-digit percentage increases.
 
 But did they?
 
@@ -170,10 +170,10 @@ Look at the min and max values for both. Is the change statistically significant
 The ACS data has lots of variables, just like the decennial Census does. To browse them, you can do this:
 
 ```{r}
-v20 <- load_variables(2020, "acs5", cache=TRUE)
+v24 <- load_variables(2024, "acs5", cache=TRUE)
 ```
 
-And then view `v20` to see what kinds of variables are available via the API.
+And then view `v24` to see what kinds of variables are available via the API.
 
 ## "Wide" Results
 
@@ -181,14 +181,14 @@ Although one of the chief strengths of tidycensus is that it offers a, well, tid
 
 ## Sorting Results
 
-You'll notice that we've used `arrange` to sort the results of tidycensus functions, although that's done after we create a new variable to hold the data. There's another way to use `arrange` that you should know about, one that you can use for exploratory analysis. An example using median household income from 2020:
+You'll notice that we've used `arrange` to sort the results of tidycensus functions, although that's done after we create a new variable to hold the data. There's another way to use `arrange` that you should know about, one that you can use for exploratory analysis. An example using median household income:
 
 ```{r}
-md20 <- get_acs(geography = "county",
+md24 <- get_acs(geography = "county",
               variables = c(medincome = "B19013_001"),
               state = "MD",
-              year = 2020)
-arrange(md20, desc(estimate))
+              year = 2024)
+arrange(md24, desc(estimate))
 ```
 
 In this case we don't save the sorted results to a variable, we can just see the output in the console.
@@ -261,7 +261,7 @@ religion_state_clean <- religion_state |>
 
 # Join the datasets
 state_religion_combined <- state_pop_2020 |>
-  inner_join(religion_state_clean, by = c("GEOID" = "State Code"))
+  inner_join(religion_state_clean, join_by(GEOID == `State Code`))
 
 # View the combined data
 state_religion_combined |>
@@ -305,7 +305,7 @@ md_religion <- religion_county |>
 
 # Join the data
 md_combined <- md_income |>
-  inner_join(md_religion, by = c("GEOID" = "FIPS"))
+  inner_join(md_religion, join_by(GEOID == FIPS))
 
 # Examine the relationship between income and religious adherence
 md_combined |>
@@ -327,12 +327,6 @@ md_combined |>
   select(NAME, estimate, `Diversity Index Value`, `Adherents as % of Population`, `Largest Body by # of Adherents`) |>
   arrange(`Diversity Index Value`) |>
   head(10)
-
-# Calculate correlation between income and diversity
-md_combined |>
-  summarize(
-    correlation = cor(estimate, `Diversity Index Value`, use = "complete.obs")
-  )
 ```
 
 ### Exploring Congregations Per Capita
@@ -343,43 +337,6 @@ Let's explore whether wealthier counties have more or fewer congregations per ca
 md_combined |>
   select(NAME, estimate, `Congregations Per 100,000 Population`, `Adherents as % of Population`) |>
   arrange(desc(`Congregations Per 100,000 Population`)) |>
-  head(10)
-
-# Look at correlation
-md_combined |>
-  summarize(
-    correlation = cor(estimate, `Congregations Per 100,000 Population`, use = "complete.obs")
-  )
-```
-
-### Comparing Across States with Income Data
-
-Finally, let's use what we've learned to compare religious characteristics across states. We'll get ACS data for median household income by state and join it with the religion census data:
-
-```{r}
-# Get state median household income
-state_income <- get_acs(
-  geography = "state",
-  variables = c(medincome = "B19013_001"),
-  year = 2021
-)
-
-# Join with religion data
-state_combined_full <- state_income |>
-  inner_join(religion_state_clean, by = c("GEOID" = "State Code"))
-
-# High adherence, lower income
-state_combined_full |>
-  filter(`Adherents as % of Population` >= "60%") |>
-  select(NAME, estimate, `Adherents as % of Population`, `Diversity Index Value`, `Largest Body by # of Adherents`) |>
-  arrange(estimate) |>
-  head(10)
-
-# High income, lower adherence
-state_combined_full |>
-  filter(`Adherents as % of Population` <= "40%") |>
-  select(NAME, estimate, `Adherents as % of Population`, `Diversity Index Value`) |>
-  arrange(desc(estimate)) |>
   head(10)
 ```
 
