@@ -1,0 +1,240 @@
+---
+title: "Understanding weighted.mean() with Survey Data"
+author: "Student Name"
+date: "2026-03-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+```
+
+## Introduction
+
+Surveys are one of the most common sources of data in journalism. But raw survey responses don't always reflect the real population. Some groups are overrepresented (they responded more than expected) and some are underrepresented. To fix this, survey researchers assign a **weight** to each respondent. R's `weighted.mean()` function lets you calculate averages that account for these weights. In this tutorial, you'll learn how to use it with data from the 2024 Cooperative Election Study (CCES), a survey of 60,000 U.S. adults.
+
+## Load Libraries and Data
+
+```{r}
+library(tidyverse)
+
+cces <- read_csv("https://raw.githubusercontent.com/dwillis/datajournalismbook-religion/main/reverse_engineering/going-dead/cces24.csv")
+glimpse(cces)
+```
+
+The key columns we'll use:
+
+-   `birthyr`: The respondent's year of birth
+-   `weight`: The survey weight assigned to each respondent
+-   Denomination columns (`baptist`, `methodist`, etc.): Codes for specific denominations
+
+## What Are Survey Weights?
+
+Surveys try to represent the whole population, but the people who actually respond aren't a perfect mirror of the country. Maybe older people responded at higher rates, or maybe one region is overrepresented. To correct for this, researchers calculate a **weight** for each respondent.
+
+-   A weight of **1.0** means that person counts exactly as-is.
+-   A weight of **1.5** means that person is underrepresented, so their response should count a bit more.
+-   A weight of **0.7** means that person is overrepresented, so their response should count a bit less.
+
+Let's look at the weights in our data:
+
+```{r}
+cces |>
+  summarise(
+    min_weight = min(weight),
+    median_weight = median(weight),
+    mean_weight = mean(weight),
+    max_weight = max(weight)
+  )
+```
+
+**Task** Look at the summary output. What is the median weight? What is the range? Most weights are close to 1, but some are much higher or lower. Those are the respondents whose demographics were most over- or under-represented in the raw sample.
+
+## mean() vs. weighted.mean()
+
+First, let's create an age variable from `birthyr`:
+
+```{r}
+cces <- cces |>
+  mutate(age = 2024 - birthyr)
+```
+
+Now let's compare the regular mean to the weighted mean for age. First, the unweighted mean:
+
+```{r}
+cces |>
+  summarise(unweighted_mean_age = mean(age, na.rm = TRUE))
+```
+
+Now the weighted mean:
+
+```{r}
+cces |>
+  summarise(weighted_mean_age = weighted.mean(age, weight, na.rm = TRUE))
+```
+
+The syntax for `weighted.mean()` is simple:
+
+    weighted.mean(values, weights, na.rm = TRUE)
+
+-   `values`: the column you want to average (here, `age`)
+-   `weights`: the column containing the survey weights (here, `weight`)
+-   `na.rm = TRUE`: ignore missing values
+
+The two numbers are different. That difference tells you something: the raw survey sample skews slightly older or younger than the actual U.S. adult population. The weighted mean corrects for that.
+
+**Task** Which is higher, the weighted or unweighted mean? What does that tell you about who is over-represented in the raw survey responses?
+
+## Create Denomination Categories
+
+Before we can look at denominations, we need to recode the raw denomination columns into a single variable. Run this code -- it's the same recoding used in the reverse engineering assignment:
+
+```{r}
+cces <- cces |>
+  mutate(
+    trad = case_when(
+      baptist == 1 ~ "Southern Baptist",
+      baptist == 2 ~ "ABCUSA",
+      baptist == 3 ~ "Natl. Baptist Convention",
+      baptist == 5 ~ "Independent Baptist",
+      baptist == 9 ~ "Free Will Baptist",
+      baptist == 90 ~ "Other Baptist",
+      methodist == 1 ~ "United Methodist",
+      methodist == 3 ~ "African Methodist Episcopal",
+      methodist == 90 ~ "Other Methodist",
+      nondenom == 1 ~ "Nondenom Evangelical",
+      nondenom == 3 ~ "Nondenom Charismatic",
+      nondenom == 4 ~ "Interdenominational",
+      nondenom == 5 ~ "Community Church",
+      nondenom == 90 ~ "Other Nondenom",
+      lutheran == 1 ~ "ELCA",
+      lutheran == 2 ~ "Lutheran - Missouri Synod",
+      presbyterian == 1 ~ "PCUSA",
+      presbyterian == 2 ~ "PCA",
+      pentecostal == 1 ~ "Assemblies of God",
+      pentecostal == 6 ~ "Church of God in Christ",
+      episcopal == 1 ~ "TEC",
+      christian == 1 ~ "Church of Christ",
+      christian == 2 ~ "Disciples of Christ",
+      congregational == 1 ~ "United Church of Christ",
+      holiness == 1 ~ "Church of the Nazarene",
+      adventist == 1 ~ "Seventh Day Adventist",
+      TRUE ~ NA_character_
+    )
+  )
+```
+
+## Using weighted.mean() with group_by and summarise
+
+The real power of `weighted.mean()` comes when you combine it with `group_by()` and `summarise()`. This lets you calculate weighted averages for each group in your data.
+
+Let's calculate both the unweighted and weighted mean age for each denomination, side by side:
+
+```{r}
+cces |>
+  filter(!is.na(trad)) |>
+  group_by(trad) |>
+  summarise(
+    n = n(),
+    unweighted_mean_age = round(mean(age, na.rm = TRUE), 1),
+    weighted_mean_age = round(weighted.mean(age, weight, na.rm = TRUE), 1),
+    .groups = "drop"
+  ) |>
+  arrange(desc(weighted_mean_age))
+```
+
+Notice the differences between the two columns. For some denominations, the gap is small. For others, weighting changes the result by a year or more. That matters when you're writing a story about demographic trends.
+
+**Task** Which denomination has the highest weighted mean age? For which denomination is the gap between unweighted and weighted mean the largest?
+
+## Counting Things the Hard Way
+
+Before we go further, let's see what it looks like to calculate a weighted percentage *without* `weighted.mean()`. Say we want to know: what percentage of Southern Baptists are Baby Boomers (born 1946-1964)?
+
+The raw approach: filter to Southern Baptists, tag each person as a Boomer or not, sum up the weights for Boomers and the total weights, then divide:
+
+```{r}
+cces |>
+  filter(trad == "Southern Baptist") |>
+  mutate(is_boomer = birthyr >= 1946 & birthyr <= 1964) |>
+  summarise(
+    boomer_weight = sum(weight[is_boomer == TRUE]),
+    total_weight = sum(weight)
+  ) |>
+  mutate(boomer_pct = boomer_weight / total_weight * 100)
+```
+
+That works, but it takes a lot of code. And if you want to do this for every denomination, you'd have to repeat it over and over. There's a much easier way.
+
+## Weighted Percentages Using weighted.mean()
+
+Here's the shortcut: you can use `weighted.mean()` to calculate weighted percentages in one line.
+
+The trick is simple. In R, `TRUE` equals 1 and `FALSE` equals 0. So if you create a column that is `TRUE` or `FALSE` for some condition, then `weighted.mean()` of that column gives you the weighted proportion. Multiply by 100 to get a percentage. It does the same math as the code above -- summing the weights for the TRUE group, dividing by total weights -- but in a single function.
+
+Let's verify it gives the same answer for Southern Baptists:
+
+```{r}
+cces |>
+  filter(trad == "Southern Baptist") |>
+  mutate(is_boomer = birthyr >= 1946 & birthyr <= 1964) |>
+  summarise(boomer_pct = round(weighted.mean(is_boomer, weight, na.rm = TRUE) * 100, 1))
+```
+
+Same number, much less code. And the real payoff is that we can now do this for every denomination at once with `group_by()`:
+
+Let's calculate the weighted percentage of Baby Boomers in each denomination:
+
+```{r}
+cces |>
+  filter(!is.na(trad)) |>
+  mutate(is_boomer = birthyr >= 1946 & birthyr <= 1964) |>
+  group_by(trad) |>
+  summarise(
+    boomer_pct = round(weighted.mean(is_boomer, weight, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  ) |>
+  arrange(desc(boomer_pct))
+```
+
+Now let's see what the Boomer share looks like in the general population -- all 60,000 respondents, not just denomination members:
+
+```{r}
+cces |>
+  mutate(is_boomer = birthyr >= 1946 & birthyr <= 1964) |>
+  summarise(boomer_pct = round(weighted.mean(is_boomer, weight, na.rm = TRUE) * 100, 1))
+```
+
+**Task** How does the Boomer share in the top denominations compare to the general population? Some denominations have more than double the national rate. Why might that be newsworthy?
+
+## Practice
+
+Now it's your turn. Use what you've learned to answer these questions.
+
+**Q1.** Calculate the weighted percentage of each denomination's members who are under 30 years old (age < 30). Which denomination has the highest share of young adults? Which has the lowest?
+
+**A1.**
+
+```{r}
+
+```
+
+**Q2.** Calculate both the weighted mean age AND the weighted percentage of members over 75 for each denomination. Arrange by the over-75 percentage. Which denominations face the most urgent demographic challenges?
+
+**A2.**
+
+```{r}
+
+```
+
+**Q3.** Calculate the weighted mean age for the general population (all respondents). Then find denominations whose weighted mean age is at least 5 years higher than that benchmark. How many denominations meet that threshold?
+
+**A3.**
+
+```{r}
+
+```
+
+**Q4.** Why does using `weighted.mean()` matter for journalism? Write 2-3 sentences about when you would need to use it and what could go wrong if you used regular `mean()` on survey data.
+
+**A4.**
