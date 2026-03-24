@@ -209,6 +209,18 @@ cces |>
 
 **Task** How does the Boomer share in the top denominations compare to the general population? Some denominations have more than double the national rate. Why might that be newsworthy?
 
+## One More Example: Young Adults
+
+Let's do one more example before you practice on your own. What percentage of United Methodists are under 30? The logic is the same as the Boomer example -- create a TRUE/FALSE column and pass it to `weighted.mean()`:
+
+```{r}
+cces |>
+  filter(trad == "United Methodist") |>
+  summarise(under_30_pct = round(weighted.mean(age < 30, weight, na.rm = TRUE) * 100, 1))
+```
+
+Notice that we didn't even need a separate `mutate()` step -- we put the condition `age < 30` directly inside `weighted.mean()`. R evaluates it as TRUE/FALSE on the fly. You can use this shortcut anytime the condition is simple.
+
 ## Practice
 
 Now it's your turn. Use what you've learned to answer these questions.
