@@ -13,6 +13,7 @@ First we need to install `tidycensus` using the console: `install.packages("tidy
 ```{r}
 #| output: false
 library(tidyverse)
+library(janitor)
 library(tidycensus)
 ```
 
@@ -129,7 +130,7 @@ md |>
 
 As you can see, some of the error bars are quite wide. Some are narrow. But if the bars overlap, it means the difference between the two counties is within the margin of error, and the differences aren't statistically significant. So is the difference between Calvert and Montgomery significant? Nope. Is the difference between Howard and everyone else significant? Yes it is.
 
-Let's ask another question of the ACS -- did any counties lose income from the time of the global financial crisis to the current 5-year window?
+Let's ask another question of the ACS -- has every Maryland county's median income recovered from the time of the global financial crisis to the current 5-year window?
 
 Let's re-label our first household income data.
 
@@ -228,17 +229,17 @@ Now that we've learned how to work with Census API data, let's combine it with d
 
 The key to joining these datasets is the FIPS code - a standardized geographic identifier used by the Census Bureau. State FIPS codes are 2 digits, and county FIPS codes are 5 digits (state + county).
 
-Let's start by reading in the U.S. Religion Census data at both the state and county levels:
+Let's start by reading in the U.S. Religion Census data at both the state and county levels. We'll use `clean_names()` to convert the column names to a consistent format: lowercase, with spaces and special characters replaced by underscores. One thing to note: R column names can't start with a number, so `2020 Population` becomes `x2020_population` -- the `x` is added automatically as a prefix.
 
 ```{r}
-religion_state <- read_csv("data/usreligioncensus_state_2020.csv")
-religion_county <- read_csv("data/usreligioncensus_county_2020.csv")
+religion_state <- read_csv("data/usreligioncensus_state_2020.csv") |> clean_names()
+religion_county <- read_csv("data/usreligioncensus_county_2020.csv") |> clean_names()
 
 glimpse(religion_state)
 glimpse(religion_county)
 ```
 
-Notice that the state data has a "State Code" column (FIPS code) and the county data has a "FIPS" column (5-digit county FIPS). These are the keys we'll use to join with Census data.
+Notice that the state data has a `state_code` column (FIPS code) and the county data has a `fips` column (5-digit county FIPS). These are the keys we'll use to join with Census data.
 
 ### State-Level Analysis
 
@@ -254,19 +255,19 @@ state_pop_2020 <- get_decennial(
 
 # Clean the religion data and prepare for joining
 religion_state_clean <- religion_state |>
-  # Make sure State Code is character for joining
-  mutate(`State Code` = as.character(`State Code`)) |>
+  # Make sure state_code is character for joining
+  mutate(state_code = as.character(state_code)) |>
   # Pad single-digit state codes with leading zero
-  mutate(`State Code` = str_pad(`State Code`, width = 2, pad = "0"))
+  mutate(state_code = str_pad(state_code, width = 2, pad = "0"))
 
 # Join the datasets
 state_religion_combined <- state_pop_2020 |>
-  inner_join(religion_state_clean, join_by(GEOID == `State Code`))
+  inner_join(religion_state_clean, join_by(GEOID == state_code))
 
 # View the combined data
 state_religion_combined |>
-  select(NAME, value, `State Name`, Adherents, `Adherents as % of Population`, `Diversity Index Value`) |>
-  arrange(desc(`Adherents as % of Population`))
+  select(NAME, value, state_name, adherents, adherents_as_percent_of_population, diversity_index_value) |>
+  arrange(desc(adherents_as_percent_of_population))
 ```
 
 The U.S. Religion Census calculates a diversity index that measures how religiously diverse each state is. Let's examine religious diversity by state to see if there are any patterns:
@@ -274,20 +275,22 @@ The U.S. Religion Census calculates a diversity index that measures how religiou
 ```{r}
 # Most diverse states
 state_religion_combined |>
-  select(NAME, value, `Diversity Index Value`, Adherents, `Adherents as % of Population`) |>
-  arrange(desc(`Diversity Index Value`)) |>
+  select(NAME, value, diversity_index_value, adherents, adherents_as_percent_of_population) |>
+  arrange(desc(diversity_index_value)) |>
   head(10)
 
 # Compare to least diverse
 state_religion_combined |>
-  select(NAME, value, `Diversity Index Value`, Adherents, `Adherents as % of Population`) |>
-  arrange(`Diversity Index Value`) |>
+  select(NAME, value, diversity_index_value, adherents, adherents_as_percent_of_population) |>
+  arrange(diversity_index_value) |>
   head(10)
 ```
 
 ### County-Level Analysis: Maryland Example
 
 Now let's work with county-level data to explore Maryland counties specifically. We'll join ACS income data with religion census data to see if there's a relationship between median household income and religious adherence.
+
+The religion census data includes a `congregations_per_100_000_population` column, but that rate isn't very intuitive for Maryland counties -- many of which have well under 100,000 people. Garrett County, for example, has about 29,000 people and 96 congregations, which works out to 333 per 100,000. But Garrett County's population is very far from 100,000 people, so that number is hard to grasp. A per-1,000 rate is more useful here: Garrett County has about 3.3 congregations per 1,000 residents, or roughly 1 for every 300 people.
 
 ```{r}
 # Get Maryland county median income
@@ -300,16 +303,17 @@ md_income <- get_acs(
 
 # Filter religion data for Maryland counties only
 md_religion <- religion_county |>
-  filter(`State Name` == "Maryland") |>
-  mutate(FIPS = as.character(FIPS))
+  filter(state_name == "Maryland") |>
+  mutate(fips = as.character(fips)) |>
+  mutate(congregations_per_1k = congregations / x2020_population * 1000)
 
 # Join the data
 md_combined <- md_income |>
-  inner_join(md_religion, join_by(GEOID == FIPS))
+  inner_join(md_religion, join_by(GEOID == fips))
 
 # Examine the relationship between income and religious adherence
 md_combined |>
-  select(NAME, estimate, `County Name`, `Adherents as % of Population`, `Diversity Index Value`, Congregations) |>
+  select(NAME, estimate, county_name, adherents_as_percent_of_population, diversity_index_value, congregations_per_1k) |>
   arrange(desc(estimate))
 ```
 
@@ -318,25 +322,25 @@ We can dig deeper into the Maryland data by looking at which counties have the m
 ```{r}
 # Most diverse Maryland counties
 md_combined |>
-  select(NAME, estimate, `Diversity Index Value`, `Adherents as % of Population`, `Largest Body by # of Adherents`) |>
-  arrange(desc(`Diversity Index Value`)) |>
+  select(NAME, estimate, diversity_index_value, adherents_as_percent_of_population, largest_body_by_number_of_adherents) |>
+  arrange(desc(diversity_index_value)) |>
   head(10)
 
 # Least diverse Maryland counties
 md_combined |>
-  select(NAME, estimate, `Diversity Index Value`, `Adherents as % of Population`, `Largest Body by # of Adherents`) |>
-  arrange(`Diversity Index Value`) |>
+  select(NAME, estimate, diversity_index_value, adherents_as_percent_of_population, largest_body_by_number_of_adherents) |>
+  arrange(diversity_index_value) |>
   head(10)
 ```
 
 ### Exploring Congregations Per Capita
 
-Let's explore whether wealthier counties have more or fewer congregations per capita:
+Let's explore whether wealthier counties have more or fewer congregations per capita, using our per-1,000 rate:
 
 ```{r}
 md_combined |>
-  select(NAME, estimate, `Congregations Per 100,000 Population`, `Adherents as % of Population`) |>
-  arrange(desc(`Congregations Per 100,000 Population`)) |>
+  select(NAME, estimate, congregations_per_1k, adherents_as_percent_of_population) |>
+  arrange(desc(congregations_per_1k)) |>
   head(10)
 ```
 
