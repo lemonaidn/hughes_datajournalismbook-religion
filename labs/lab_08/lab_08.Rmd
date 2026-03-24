@@ -78,7 +78,7 @@ To answer this question, do the following:
 1.  Filter the county religion census data to Maryland counties only.
 2.  Get data from the Census Bureau showing median household income for Maryland counties using tidycensus.
 3.  Join those two dataframes on their FIPS/GEOID columns, starting with the religion census dataframe.
-4.  Make a scatterplot showing the adherents percentage and median income. I didn't show you how to do this, so look it up! Googling "ggplot scatterplot" is a good start.
+4.  Make a scatterplot showing the adherents percentage and median income.
 5.  Give it an appropriate title, source, and x and y axis titles.
 6.  Add a label for each point that shows the county name using geom_text() - see some examples of its use at <https://ggplot2.tidyverse.org/reference/geom_text.html#ref-examples>. Try to make the names as easy to read as possible by avoiding overlap.
 7.  In the answer space below, describe what you see and answer the questions posed above. In a general sense, what do you think this means? Feel free to consider the actual raw values: how would you report out the main point(s) of this chart?

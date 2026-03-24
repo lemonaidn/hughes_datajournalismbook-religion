@@ -8,9 +8,12 @@ project:
     - "!textanalysis.qmd"
     - "!prep.qmd"
     - "!labs/"
-    - "!pre-labs/"
+    - "!pre_labs/"
     - "!data/"
     - "!images/"
+    - "!automating_analysis.qmd"
+    - "!gss.qmd"
+    - "!reverse_engineering*"
 
 website:
   title: "Data Journalism with R and the Tidyverse"

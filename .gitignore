@@ -47,3 +47,6 @@ labs/labs_01/lab_01_video/*
 index.log
 
 /.quarto/
+.positai
+
+**/*.quarto_ipynb

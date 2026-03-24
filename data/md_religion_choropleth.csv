@@ -1,25 +1,25 @@
-FIPS,County Name,Congregations,Adherents,Adherents as % of Population,Largest Body by # of Adherents
-24001,Allegany County,145,27839,40.88%,Catholic Church
-24003,Anne Arundel County,371,199170,33.86%,Catholic Church
-24005,Baltimore County,569,296149,34.66%,Catholic Church
-24009,Calvert County,72,38221,41.19%,Catholic Church
-24011,Caroline County,60,11835,35.55%,United Methodist Church
-24013,Carroll County,155,68795,39.79%,Catholic Church
-24015,Cecil County,121,30919,29.81%,Non-denominational Christian Churches
-24017,Charles County,145,66417,39.86%,Catholic Church
-24019,Dorchester County,81,11588,35.62%,United Methodist Church
-24021,Frederick County,275,99655,36.68%,Catholic Church
-24023,Garrett County,96,10873,37.75%,United Methodist Church
-24025,Harford County,205,91277,34.98%,Catholic Church
-24027,Howard County,222,143226,43.10%,Catholic Church
-24029,Kent County,48,7477,38.95%,Catholic Church
-24031,Montgomery County,776,567370,53.42%,Catholic Church
-24033,Prince George's County,873,484028,50.04%,Catholic Church
-24035,Queen Anne's County,63,20403,40.91%,Catholic Church
-24037,St. Mary's County,88,50430,44.32%,Catholic Church
-24039,Somerset County,49,5561,22.59%,United Methodist Church
-24041,Talbot County,68,18632,49.65%,Catholic Church
-24043,Washington County,232,58736,37.97%,Non-denominational Christian Churches
-24045,Wicomico County,162,41803,40.36%,United Methodist Church
-24047,Worcester County,112,33534,63.92%,Catholic Church
-24510,Baltimore city,725,300657,51.33%,Non-denominational Christian Churches
+FIPS,County Name,Congregations,Adherents,Adherents as % of Population,Largest Body by # of Adherents,pct_adherents
+24001,Allegany County,145,27839,40.88%,Catholic Church,40.88
+24003,Anne Arundel County,371,199170,33.86%,Catholic Church,33.86
+24005,Baltimore County,569,296149,34.66%,Catholic Church,34.66
+24009,Calvert County,72,38221,41.19%,Catholic Church,41.19
+24011,Caroline County,60,11835,35.55%,United Methodist Church,35.55
+24013,Carroll County,155,68795,39.79%,Catholic Church,39.79
+24015,Cecil County,121,30919,29.81%,Non-denominational Christian Churches,29.81
+24017,Charles County,145,66417,39.86%,Catholic Church,39.86
+24019,Dorchester County,81,11588,35.62%,United Methodist Church,35.62
+24021,Frederick County,275,99655,36.68%,Catholic Church,36.68
+24023,Garrett County,96,10873,37.75%,United Methodist Church,37.75
+24025,Harford County,205,91277,34.98%,Catholic Church,34.98
+24027,Howard County,222,143226,43.10%,Catholic Church,43.1
+24029,Kent County,48,7477,38.95%,Catholic Church,38.95
+24031,Montgomery County,776,567370,53.42%,Catholic Church,53.42
+24033,Prince George's County,873,484028,50.04%,Catholic Church,50.04
+24035,Queen Anne's County,63,20403,40.91%,Catholic Church,40.91
+24037,St. Mary's County,88,50430,44.32%,Catholic Church,44.32
+24039,Somerset County,49,5561,22.59%,United Methodist Church,22.59
+24041,Talbot County,68,18632,49.65%,Catholic Church,49.65
+24043,Washington County,232,58736,37.97%,Non-denominational Christian Churches,37.97
+24045,Wicomico County,162,41803,40.36%,United Methodist Church,40.36
+24047,Worcester County,112,33534,63.92%,Catholic Church,63.92
+24510,Baltimore city,725,300657,51.33%,Non-denominational Christian Churches,51.33

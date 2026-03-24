@@ -30,7 +30,7 @@ The key columns we'll use:
 
 ## What Are Survey Weights?
 
-Surveys try to represent the whole population, but the people who actually respond aren't a perfect mirror of the country. Maybe older people responded at higher rates, or maybe one region is overrepresented. To correct for this, researchers calculate a **weight** for each respondent.
+Surveys try to represent the whole population, but the people who actually respond aren't a perfect mirror of the country. Maybe older people responded at higher rates, or maybe one region is over-represented. To correct for this, researchers calculate a **weight** for each respondent.
 
 -   A weight of **1.0** means that person counts exactly as-is.
 -   A weight of **1.5** means that person is underrepresented, so their response should count a bit more.
@@ -75,7 +75,9 @@ cces |>
 
 The syntax for `weighted.mean()` is simple:
 
-    weighted.mean(values, weights, na.rm = TRUE)
+```         
+weighted.mean(values, weights, na.rm = TRUE)
+```
 
 -   `values`: the column you want to average (here, `age`)
 -   `weights`: the column containing the survey weights (here, `weight`)
@@ -211,7 +213,7 @@ cces |>
 
 Now it's your turn. Use what you've learned to answer these questions.
 
-**Q1.** Calculate the weighted percentage of each denomination's members who are under 30 years old (age < 30). Which denomination has the highest share of young adults? Which has the lowest?
+**Q1.** Calculate the weighted percentage of each denomination's members who are under 30 years old (age \< 30). Which denomination has the highest share of young adults? Which has the lowest?
 
 **A1.**
 

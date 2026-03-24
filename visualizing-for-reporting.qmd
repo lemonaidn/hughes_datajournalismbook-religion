@@ -20,15 +20,12 @@ The first dataset we'll use is from the U.S. Religion Census, which measures con
 religion_census <- read_csv("data/usreligioncensus_state_2020.csv") |> clean_names()
 ```
 
-Some of the numeric columns in this data were stored with commas and percent signs, so R read them as text. Let's fix the columns we'll need using `parse_number()`, which strips out commas, percent signs and other non-numeric characters.
+One of the columns we'll need -- adherents as a percent of population -- was stored with a percent sign, so R read it as text. Let's fix that using `parse_number()`, which strips out percent signs and other non-numeric characters.
 
 ```{r}
 religion_census <- religion_census |>
   mutate(
-    congregations = parse_number(congregations),
-    adherents = parse_number(adherents),
-    adherents_as_percent_of_population = parse_number(adherents_as_percent_of_population),
-    diversity_index_value = parse_number(diversity_index_value)
+    adherents_as_percent_of_population = parse_number(adherents_as_percent_of_population)
   )
 
 top_states <- religion_census |>
