@@ -17,6 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # turn off sci notation
 options(scipen=999)
 library(tidyverse)
+library(janitor)
 # if needed, install tidycensus, then load it.
 # install.packages("tidycensus")
 library(tidycensus)
@@ -34,7 +35,7 @@ To use the API, you need to [an API key from the Census Bureau](https://api.cens
 
 `census_api_key("YOUR KEY HERE", install=TRUE)`
 
-This will save your key to your .Renviron file so it's available for future sessions. You only need to do this once. After running it, restart R (Session -> Restart R) so the key takes effect.
+This will save your key to your .Renviron file so it's available for future sessions. You only need to do this once. After running it, restart R (Session -\> Restart R) so the key takes effect.
 
 To give you some idea of how complicated the data is, let's pull up just one file from the decennial Census. We'll use Summary File 1, or SF1. That has the major population and housing stuff.
 
@@ -161,7 +162,7 @@ Is the difference between Howard and everyone else significant? **Answer**
 
 ### Task 7: Joining Multiple Years Together
 
-Let's ask another question of the ACS -- did any counties lose income from the time of the global financial crisis to the current 5-year window?
+Let's ask another question of the ACS -- has every Maryland county's median income recovered from the time of the global financial crisis to the current 5-year window?
 
 Let's re-label our first household income data.
 
@@ -199,21 +200,23 @@ md10 |>
 
 Now that we've learned how to work with Census API data, let's combine it with data from the 2020 U.S. Religion Census (alas, not a Census Bureau project). This will let us explore the relationship between demographic characteristics and religious adherence patterns.
 
-The key to joining these datasets is the FIPS code - a standardized geographic identifier used by the Census Bureau. State FIPS codes are 2 digits, and county FIPS codes are 5 digits (state + county).
+The key to joining these datasets is the FIPS code - a standardized geographic identifier used by the Census Bureau. State FIPS codes are 2 digits, and county FIPS codes are 5 digits (state + county). In the religion data, they are reflected in the `state_code` column for states and the `fips` column for counties. We'll use these to join the datasets together.
 
 ### Task 8: Load U.S. Religion Census Data
 
 **Task** Run the following codeblock to load the state and county religion census data. Examine the structure - what columns do you see? **Answer**
 
 ```{r}
-religion_state <- read_csv("data/usreligioncensus_state_2020.csv")
-religion_county <- read_csv("data/usreligioncensus_county_2020.csv")
+religion_state <- read_csv("data/usreligioncensus_state_2020.csv") |> clean_names()
+religion_county <- read_csv("data/usreligioncensus_county_2020.csv") |> clean_names()
 
 glimpse(religion_state)
 glimpse(religion_county)
 ```
 
-Notice that the state data has a "State Code" column (FIPS code) and the county data has a "FIPS" column (5-digit county FIPS). These are the keys we'll use to join with Census data.
+Using `clean_names()` converts column names to a consistent format: lowercase, with spaces and special characters replaced by underscores. One thing to note: R column names can't start with a number, so `2020 Population` becomes `x2020_population` -- the `x` is added automatically as a prefix.
+
+Notice that the state data has a `state_code` column (FIPS code) and the county data has a `fips` column (5-digit county FIPS). These are the keys we'll use to join with Census data.
 
 ### Task 9: Join State-Level Census and Religion Data
 
@@ -231,26 +234,28 @@ state_pop_2020 <- get_decennial(
 
 # Clean the religion data and prepare for joining
 religion_state_clean <- religion_state |>
-  # Make sure State Code is character for joining
-  mutate(`State Code` = as.character(`State Code`)) |>
+  # Make sure state_code is character for joining
+  mutate(state_code = as.character(state_code)) |>
   # Pad single-digit state codes with leading zero
-  mutate(`State Code` = str_pad(`State Code`, width = 2, pad = "0"))
+  mutate(state_code = str_pad(state_code, width = 2, pad = "0"))
 
 # Join the datasets
 state_religion_combined <- state_pop_2020 |>
-  inner_join(religion_state_clean, join_by(GEOID == `State Code`))
+  inner_join(religion_state_clean, join_by(GEOID == state_code))
 
 # View the combined data
 state_religion_combined |>
-  select(NAME, value, `State Name`, Adherents, `Adherents as % of Population`, `Diversity Index Value`) |>
-  arrange(desc(`Adherents as % of Population`))
+  select(NAME, value, state_name, adherents, adherents_as_percent_of_population, diversity_index_value) |>
+  arrange(desc(adherents_as_percent_of_population))
 ```
 
 ### Task 10: Join County-Level Data for Maryland
 
 Now let's work with county-level data to explore Maryland specifically. We'll join ACS income data with religion census data to see if wealthier counties differ from less wealthy ones in their religious characteristics.
 
-**Task** Run the following code to get Maryland county data from both sources and join them. Do the wealthiest counties tend to have higher or lower rates of religious adherence? **Answer**
+You'll notice the religion census data includes a `congregations_per_100_000_population` column. That rate makes sense for large states, but for Maryland counties -- many of which have well under 100,000 people -- it's not very intuitive. Garrett County, for example, has about 29,000 people and 96 congregations, which works out to 333 per 100,000. But Garrett County's population is very far from 100,000 people, so that number is hard to grasp. A per-1,000 rate is more useful here: Garrett County has about 3.3 congregations per 1,000 residents, or roughly 1 for every 300 people.
+
+**Task** Run the following code to get Maryland county data from both sources and join them. We'll calculate a per-1,000 congregations rate that's easier to interpret. Do the wealthiest counties tend to have higher or lower rates of religious adherence? **Answer**
 
 ```{r}
 # Get Maryland county median income
@@ -263,15 +268,16 @@ md_income <- get_acs(
 
 # Filter religion data for Maryland counties only
 md_religion <- religion_county |>
-  filter(`State Name` == "Maryland") |>
-  mutate(FIPS = as.character(FIPS))
+  filter(state_name == "Maryland") |>
+  mutate(fips = as.character(fips)) |>
+  mutate(congregations_per_1k = congregations / x2020_population * 1000)
 
 # Join the data
 md_combined <- md_income |>
-  inner_join(md_religion, join_by(GEOID == FIPS))
+  inner_join(md_religion, join_by(GEOID == fips))
 
 # Examine the relationship between income and religious adherence
 md_combined |>
-  select(NAME, estimate, `County Name`, `Adherents as % of Population`, `Diversity Index Value`, Congregations) |>
+  select(NAME, estimate, county_name, adherents_as_percent_of_population, diversity_index_value, congregations_per_1k) |>
   arrange(desc(estimate))
 ```
