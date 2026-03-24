@@ -1,3 +1,12 @@
+---
+title: "Data Journalism with R and the Tidyverse"
+subtitle: "JOUR 472/772, Religion Edition"
+author: "Derek Willis"
+date: last-modified
+description: "Learn data journalism techniques with R and the Tidyverse."
+title-block-banner: true
+---
+
 # Introduction
 
 If you were at all paying attention in pre-college science classes, you have probably seen this equation:
