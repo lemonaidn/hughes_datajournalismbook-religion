@@ -3,21 +3,24 @@ title: "Data Journalism with R and the Tidyverse"
 subtitle: "JOUR 472/772, Religion Edition"
 author: "Derek Willis"
 date: last-modified
-description: "Learn data journalism techniques with R and the Tidyverse."
-title-block-banner: true
+description: "Philip Merrill College of Journalism, University of Maryland"
 ---
 
 # Introduction
 
 If you were at all paying attention in pre-college science classes, you have probably seen this equation:
 
-    d = rt or distance = rate*time
+```         
+d = rt or distance = rate*time
+```
 
 In English, that says we can know how far something has traveled if we know how fast it's going and for how long. If we multiply the rate by the time, we'll get the distance.
 
 If you remember just a bit about algebra, you know we can move these things around. If we know two of them, we can figure out the third. So, for instance, if we know the distance and we know the time, we can use algebra to divide the distance by the time to get the rate.
 
-    d/t = r or distance/time = rate
+```         
+d/t = r or distance/time = rate
+```
 
 In 2012, the South Florida Sun Sentinel found a story in this formula.
 
