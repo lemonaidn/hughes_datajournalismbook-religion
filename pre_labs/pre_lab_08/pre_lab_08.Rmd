@@ -47,10 +47,7 @@ Some of the numeric columns in this data were stored with commas and percent sig
 ```{r}
 religion_census <- religion_census |>
   mutate(
-    congregations = parse_number(congregations),
-    adherents = parse_number(adherents),
-    adherents_as_percent_of_population = parse_number(adherents_as_percent_of_population),
-    diversity_index_value = parse_number(diversity_index_value)
+    adherents_as_percent_of_population = parse_number(adherents_as_percent_of_population)
   )
 
 top_states <- religion_census |>
