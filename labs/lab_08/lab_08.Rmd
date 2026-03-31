@@ -87,3 +87,20 @@ To answer this question, do the following:
 
 ```{r}
 ```
+
+**Q4.** A histogram is similar to a bar chart, but instead of showing counts for categories, it shows the **distribution** of a continuous variable. It does this by dividing the data into "bins" — equal-sized ranges — and showing how many observations fall into each bin. This is useful for seeing the shape of your data: is it clustered around one value? Is it spread out? Does it have a long tail?
+
+In ggplot, you make a histogram with `geom_histogram()`. Unlike `geom_bar()`, you only need to set the x aesthetic — ggplot counts the observations in each bin for you. You can control the bin width with the `binwidth` argument inside `geom_histogram()`.
+
+Using the megachurches data, create a histogram showing the distribution of church sizes (attendance). Your histogram must have:
+
+-   A clear title that states the main idea/finding
+-   Good labels for the x & y axis and a caption for the source, which is the Hartford Institute for Religion Research.
+-   A reasonable bin width. Try at least two different values for `binwidth` and settle on one that tells the clearest story. The binwidth should not be outside the range of actual values for attendance, and should be on the lower end of that range.
+
+In the answer space below, describe the shape of the distribution. Where do most megachurches cluster? Are there outliers? What does this tell you about what "megachurch" means in practice?
+
+**A4.**
+
+```{r}
+```
