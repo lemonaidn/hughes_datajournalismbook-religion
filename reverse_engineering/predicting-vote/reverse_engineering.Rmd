@@ -18,22 +18,22 @@ The article argues that religious identity is a far stronger predictor of how Am
 
 ### Your Assignment
 
-1. **Read the article carefully** and identify the key facts, figures, and claims the author presents
-2. **Examine the CES data** provided in the `data/` folder
-3. **Write your own code** to reproduce those key findings
-4. **Document your work** with clear comments explaining your analysis
+1.  **Read the article carefully** and identify the key facts, figures, and claims the author presents
+2.  **Examine the CES data** provided in the `data/` folder
+3.  **Write your own code** to reproduce those key findings
+4.  **Document your work** with clear comments explaining your analysis
 
 ## The Data
 
 The Cooperative Election Study (CES) surveys roughly 60,000 adults each year. The data file `ces_2024_religion.csv` contains:
 
-- **weight**: Survey weight (use this for all calculations)
-- **trad**: Broad religious tradition (e.g., "White Evangelical", "Jewish", "Atheist", "Black Protestant")
-- **income**: Household income on a 1-16 scale (1 = Less than $10,000 ... 16 = $500,000+)
-- **pid7**: 7-point party ID (1=Strong Democrat, 4=Independent, 7=Strong Republican)
-- **vote_2024**: 2024 presidential vote (1=Democrat/Harris, 2=Republican/Trump)
-- **race**: Race/ethnicity (1=White, 2=Black, 3=Hispanic, etc.)
-- **educ**: Education level (1=No HS through 6=Post-grad)
+-   **weight**: Survey weight (use this for all calculations)
+-   **trad**: Broad religious tradition (e.g., "White Evangelical", "Jewish", "Atheist", "Black Protestant")
+-   **income**: Household income on a 1-16 scale (1 = Less than \$10,000 ... 16 = \$500,000+)
+-   **pid7**: 7-point party ID (1=Strong Democrat, 4=Independent, 7=Strong Republican)
+-   **vote_2024**: 2024 presidential vote (1=Democrat/Harris, 2=Republican/Trump)
+-   **race**: Race/ethnicity (1=White, 2=Black, 3=Hispanic, etc.)
+-   **educ**: Education level (1=No HS through 6=Post-grad)
 
 **Important:** Use `weighted.mean()` instead of `mean()` for all calculations.
 
@@ -49,7 +49,7 @@ glimpse(ces)
 
 ## Finding 1: Average Income Varies Widely by Religious Tradition
 
-**Article claim:** Hindus report the highest average income (~$85,000). Jewish traditions and Episcopalians average above $75,000. Most Protestant traditions cluster around $50,000-$60,000.
+**Article claim:** Hindus report the highest average income (\~\$85,000). Jewish traditions and Episcopalians average above \$75,000. Most Protestant traditions cluster around \$50,000-\$60,000.
 
 ```{r}
 # Calculate weighted mean income category by religious tradition
@@ -101,14 +101,14 @@ cat("\nCorrelation between avg income and Republican %:",
 
 ## Finding 3: Trump Vote Among White Evangelicals by Income
 
-**Article claim:** Among White Evangelicals making under $40,000, about two-thirds (~67%) voted for Trump. Among those earning $80,000-$120,000, about 78% voted for Trump -- only a ~10 percentage point increase across a large income range.
+**Article claim:** Among White Evangelicals making under \$40,000, about two-thirds (\~67%) voted for Trump. Among those earning \$80,000-\$120,000, about 78% voted for Trump -- only a \~10 percentage point increase across a large income range.
 
 ```{r}
 # Calculate Trump vote percentage by income bracket among White Evangelicals
 # Income categories: 1-4 roughly correspond to < $40k, 8-10 roughly to $80k-$120k
 
 sbc_by_income <- ces %>%
-  filter(trad == "White Evangelical", !is.na(vote_2024)) %>%
+  filter(!is.na(vote_2024)) %>%
   mutate(
     voted_trump = vote_2024 == 2,
     income_bracket = case_when(
@@ -121,7 +121,7 @@ sbc_by_income <- ces %>%
     )
   ) %>%
   filter(!is.na(income_bracket)) %>%
-  group_by(income_bracket) %>%
+  group_by(trad, income_bracket) %>%
   summarise(
     n = n(),
     trump_pct = round(weighted.mean(voted_trump, weight, na.rm = TRUE) * 100, 1),
@@ -217,6 +217,64 @@ extremes_by_income
 ```
 
 **Your interpretation:** Does the gap between White evangelicals and Black Protestants persist at every income level? What does this tell us about religion vs. income as predictors of voting?
+
+## Finding 6: Income Barely Moves the Needle Within Religious Traditions
+
+**Article claim:** "For Latter-day Saints, the difference between the highest earners and the lowest is one percentage point. For white evangelicals, it's 0.6%. For Black Protestants, just 0.5%."
+
+```{r}
+# Run a logistic regression predicting Trump vote from income and religious tradition
+df <- ces %>%
+  filter(!is.na(vote_2024)) %>%
+  mutate(voted_trump = as.integer(vote_2024 == 2))
+
+model <- glm(voted_trump ~ income + trad, data = df, family = binomial, weights = weight)
+
+# For each tradition, calculate the predicted probability of voting Trump
+# at the lowest income (1 = less than $10k) and highest income (16 = $500k+)
+traditions_to_check <- c("Mormon/LDS", "White Evangelical", "Black Protestant")
+
+income_effect <- map_dfr(traditions_to_check, function(t) {
+  pred_low <- predict(model, newdata = data.frame(income = 1, trad = t), type = "response")
+  pred_high <- predict(model, newdata = data.frame(income = 16, trad = t), type = "response")
+
+  tibble(
+    trad = t,
+    pred_lowest_income = round(pred_low * 100, 1),
+    pred_highest_income = round(pred_high * 100, 1),
+    difference = round((pred_high - pred_low) * 100, 1)
+  )
+})
+
+income_effect
+```
+
+**Your interpretation:** How much does income change the predicted Trump vote within these traditions? Does this support the article's claim that religion dominates income as a predictor?
+
+For comparison, here's what the raw weighted means look like at the income extremes — note the very small sample sizes, which is why the regression approach above is more reliable:
+
+```{r}
+# Weighted mean Trump vote % at lowest and highest income levels, by tradition
+ces %>%
+  filter(!is.na(vote_2024), trad %in% c("Mormon/LDS", "White Evangelical", "Black Protestant")) %>%
+  mutate(
+    voted_trump = as.integer(vote_2024 == 2),
+    income_group = case_when(
+      income == 1 ~ "Lowest ($<10k)",
+      income == 16 ~ "Highest ($500k+)",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(income_group)) %>%
+  group_by(trad, income_group) %>%
+  summarise(
+    n = n(),
+    trump_pct = round(weighted.mean(voted_trump, weight, na.rm = TRUE) * 100, 1),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = income_group, values_from = c(trump_pct, n)) %>%
+  mutate(diff = `trump_pct_Highest ($500k+)` - `trump_pct_Lowest ($<10k)`)
+```
 
 ## Summary
 
