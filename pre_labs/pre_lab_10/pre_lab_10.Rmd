@@ -169,67 +169,91 @@ ggplot() +
 
 Notice the subtle differences at the boundaries?
 
-Now let's do something more interesting with geographic data. We're going to map the locations of churches in Prince George's County using data that includes geocoded addresses. This will introduce a new concept: turning a regular dataframe with latitude and longitude columns into geographic point data.
+Now let's do something more interesting with geographic data. We're going to figure out which churches from our statewide churches data are located in Prince George's County -- and then map them. But our churches data doesn't have a county column. It only has zip codes. So how do we figure out which zip codes are in Prince George's County?
 
-### Task: Run code to load the PG County church data.
+This is where the power of geographic data comes in. We already have a zip code shapefile with the geographic boundaries of each zip code, and we can get the geographic boundary of Prince George's County from our county data. Using a **spatial join**, we can find which zip codes overlap with Prince George's County -- no county column needed. The geography itself connects the two datasets.
 
-**Task** Run the following code. Describe the output in the space below. **Answer**
-
-```{r}
-pg_churches <- read_csv("data/pg_churches_geocoded.csv")
-
-glimpse(pg_churches)
-```
-
-This is a regular dataframe -- it has columns for the church name, address, and importantly, latitude and longitude values from geocoding. But R doesn't yet know those lat/lon columns represent geographic coordinates. We need to convert this dataframe into an sf object using `st_as_sf()`, which tells R which columns contain the coordinates and what coordinate reference system (CRS) they use.
-
-### Task: Run code to convert the church data to geographic points
+### Task: Load the Maryland churches data
 
 **Task** Run the following code. Describe the output in the space below. **Answer**
 
 ```{r}
-pg_churches_sf <- pg_churches |>
-  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+md_churches <- read_csv("data/churches_md.csv")
 
-glimpse(pg_churches_sf)
+glimpse(md_churches)
 ```
 
-Notice how the dataframe now has a `geometry` column of type POINT instead of the separate lat and lon columns. The CRS 4326 is the standard coordinate system used by GPS -- it's what most geocoded data uses.
+This is a dataframe of churches registered as tax-exempt organizations in Maryland. It has columns for the church name, address, city, state, zip code, and NTEE code (a classification system for nonprofits). Notice the `zip5` column -- that's the 5-digit zip code we can use to connect this data to our zip code shapefile.
 
-Now let's plot these church locations. First, we'll filter our Maryland counties down to just Prince George's County to use as a base layer, then add the church points on top.
+### Task: Use a spatial join to find Prince George's County zip codes
 
-### Task: Run code
+First, we need to filter our county data down to just Prince George's County. Then we'll use `st_join()` to find which zip codes from our shapefile intersect with the county boundary. We need to make sure both layers use the same coordinate reference system (CRS), so we'll transform the county data to match the zip code data's CRS.
 
-**Task** Run the following code. Describe the output in the space below. What spatial patterns do you notice? **Answer**
+**Task** Run the following code. Describe the output in the space below. **Answer**
 
 ```{r}
 pg_county <- md_counties |>
-  filter(NAME == "Prince George's")
+  filter(NAME == "Prince George's") |>
+  st_transform(crs = st_crs(md_zips))
 
-ggplot() +
-  geom_sf(data=pg_county) +
-  geom_sf(data=pg_churches_sf) +
-  theme_minimal()
+pg_zips <- st_join(md_zips, pg_county, join = st_intersects) |>
+  filter(!is.na(NAME))
+
+pg_zips
 ```
 
-You should see the outline of Prince George's County with dots representing each church. Are they evenly distributed? Are there clusters? Think about what you know about the county's geography -- where are the more densely populated areas?
+The `st_join()` function checks which zip code polygons intersect (overlap with) the Prince George's County polygon. Zip codes that fall outside PG County will have NA values for the county columns, so we filter those out. The result is a set of zip codes that are in Prince George's County.
 
-Let's make this more informative by adding color. If our data has an NTEE code or denomination column, we can use it to distinguish different types of churches:
+### Task: Filter churches to Prince George's County
 
-### Task: Run code
+Now we can use those PG County zip codes to filter our churches data. We'll match the `zip5` column in the churches data to the `ZIPCODE1` column in our spatial join results.
+
+**Task** Run the following code. Describe the output in the space below. How many churches are in Prince George's County? **Answer**
+
+```{r}
+pg_churches <- md_churches |>
+  mutate(zip5 = as.character(zip5)) |>
+  filter(zip5 %in% pg_zips$ZIPCODE1)
+
+nrow(pg_churches)
+```
+
+### Task: Count churches per zip code
+
+Now let's count how many churches are in each PG County zip code and join that count back to the zip code shapefile. This will let us make a choropleth map -- where the color of each zip code represents the number of churches in it.
 
 **Task** Run the following code. Describe the output in the space below. **Answer**
 
 ```{r}
-ggplot() +
-  geom_sf(data=pg_county) +
-  geom_sf(data=pg_churches_sf, aes(color=NTEE_CD), size=2, alpha=0.7) +
-  theme_minimal() +
-  labs(title="Churches in Prince George's County",
-       color="NTEE Code")
+pg_church_counts <- pg_churches |>
+  group_by(zip5) |>
+  summarise(church_count = n())
+
+pg_churches_sf <- pg_zips |>
+  left_join(pg_church_counts, by = c("ZIPCODE1" = "zip5"))
+
+pg_churches_sf
 ```
 
-This is a common pattern in data journalism: layering point data on top of boundary data to see geographic patterns. You could do similar things with any geocoded data -- locations of schools, hospitals, crime incidents, or in this case, houses of worship.
+### Task: Plot the choropleth
+
+Now let's plot the zip code choropleth on top of the Prince George's County boundary. The `fill` aesthetic will color each zip code by its church count.
+
+**Task** Run the following code. Describe the output in the space below. What spatial patterns do you notice? Which zip codes have the most churches? **Answer**
+
+```{r}
+ggplot() +
+  geom_sf(data=pg_county) +
+  geom_sf(data=pg_churches_sf, aes(fill=church_count)) +
+  scale_fill_viridis_b(option="magma") +
+  theme_minimal() +
+  labs(title="Churches in Prince George's County by Zip Code",
+       fill="Number of\nChurches")
+```
+
+You should see the outline of Prince George's County with each zip code colored according to how many churches it contains. Are they evenly distributed? Are there clusters? Think about what you know about the county's geography -- where are the more densely populated areas?
+
+This is a common pattern in data journalism: using spatial joins to connect non-geographic data (like our churches list) to geographic boundaries, and then mapping the results as a choropleth. The key insight is that you don't always need latitude and longitude coordinates to map data -- sometimes a shared geographic identifier like a zip code, combined with a shapefile, is enough.
 
 ## Chapter 21
 
@@ -246,7 +270,6 @@ library(tidyverse)
 library(sf)
 library(janitor)
 library(tidycensus)
-#census_api_key("549950d36c22ff16455fe196bbbd01d63cfbe6cf")
 ```
 
 For the rest of this chapter, we're going to work on building a map that will help us gain insight into geographic patterns in religious adherence by county in Maryland. What geographic patterns can we identify?
