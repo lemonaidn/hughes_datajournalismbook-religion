@@ -55,11 +55,11 @@ What's the story about church density in an urban jurisdiction (Baltimore City) 
 ```{r}
 ```
 
-**Q3.** Is there a relationship between religious adherence and political voting patterns? Using the `md_statewide_county.csv` file in the data folder (which has 2022 gubernatorial election results), calculate the percentage of the vote won by Dan Cox (the Republican candidate) in each county. Then join that to the religion data from Q1, which should already have the congregations per 10,000 rate and the adherent percentage.
+**Q3.** Is there a relationship between religious adherence and political voting patterns? Using the `md_statewide_county.csv` file in the data folder (which has 2022 gubernatorial election results), use the percentage of the vote won by Dan Cox (the Republican candidate) in each county. Then join that to the religion data from Q1, which should already have the congregations per 10,000 rate and the adherent percentage.
 
 Make a county-level choropleth map of the Cox vote percentage AND a second map of the congregations per 10,000 rate (or adherent percentage). Compare the two maps. Do counties with higher rates of religious congregations tend to vote more Republican? What are the exceptions, and what might explain them? What additional data would you want to explore this further?
 
-HINT: The election data has a GEOID column and the religion data has a FIPS column -- these should match. You'll need to calculate total votes in the governor's race to get Cox's percentage.
+HINT: The election data has a GEOID column and the religion data has a FIPS column -- these should match.
 
 **A3.**
 
