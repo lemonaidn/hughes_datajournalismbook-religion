@@ -115,7 +115,7 @@ We're going to work from the Prince George's County churches Google Sheet. You u
 3. Pick one that wasn't used in the pre-lab. Try to find one where the church appears active on YouTube - recent uploads, reasonable video quality, and ideally full services or sermons rather than just short clips.
 4. Open the church's YouTube channel or page in your browser.
 
-**Q1.** Which church did you pick? Paste the church name, the city, and the YouTube URL (channel or page) below. In a sentence or two, describe what kind of content the church posts - full services? sermon-only clips? Bible studies? How often do they upload?
+**Q1.** Which church did you pick? Paste the church name, the city, and the YouTube URL (channel or page) below. Describe what kind of content the church posts - full services? sermon-only clips? Bible studies? How often do they upload?
 
 **A1.**
 
@@ -139,8 +139,6 @@ Now you'll use Stacher7 to download one video from the church you picked.
 **Q2.** What video did you download? Paste the video title, the URL, and the approximate length of the video. How large was the downloaded audio file?
 
 **A2.**
-
-**Note on ethics and permissions:** The sermons you're downloading are publicly posted by the churches themselves. That makes them fair game for analysis and reporting, but treat them the way you'd treat any public statement by a source: quote accurately, provide context, and give the speaker a chance to respond before publishing anything that characterizes what they said. Don't republish the audio itself.
 
 ---
 
@@ -249,7 +247,7 @@ tidy_transcript |>
 
 **A5.**
 
-### Step 6 (optional): Search for a specific word or phrase
+### Step 6: Search for a specific word or phrase
 
 If something in Q5 caught your eye, you can go back to the original line-level transcript and find where it appeared. This is how you'd turn a word count into an actual quote for a story.
 
@@ -259,21 +257,3 @@ tibble(line = 1:length(transcript), text = transcript) |>
   filter(str_detect(text, regex("faith", ignore_case = TRUE)))
 ```
 
-You don't have to answer a question about this - it's just a tool you now have.
-
----
-
-## Wrap-up
-
-You now have a workflow that, with a few clicks and a few lines of R, can turn any publicly posted sermon into a tidy dataset of words on your own machine. Hold onto the transcript file and this notebook - we'll build on both in future labs when we start analyzing sermon language at scale.
-
-Before you submit, confirm you have:
-
-- Stacher7 installed and working
-- MacWhisper (Mac) or Whisper Desktop (Windows) installed with a model loaded
-- A downloaded audio file from a PG County church (not the one from pre_lab_11)
-- A saved plain-text `.txt` transcript in your project folder
-- A knitted HTML showing your word counts from Task 7
-- Answers to Q1 through Q5
-
-Knit this file to HTML and submit the `.Rmd` and `.html` files along with your transcript `.txt`.
