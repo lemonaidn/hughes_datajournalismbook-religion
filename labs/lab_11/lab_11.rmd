@@ -1,7 +1,7 @@
 ---
 title: "lab_11"
-author: "Derek Willis"
-date: "2025-01-16"
+author: "YOUR NAME HERE"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 
@@ -9,50 +9,271 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## You will need
+## Introduction
 
--   Our usual libraries for working with data, plus rvest and lubridate.
+So far in this course, we've worked almost exclusively with structured data - CSVs, dataframes, columns and rows. But a lot of religious life happens in words: sermons, prayers, announcements, Bible studies. Many congregations stream or post their services to YouTube, which means there is a vast, largely unexamined archive of what religious leaders are telling their congregations every week.
 
-## Load libraries and establish settings
+In this lab, you'll set up two tools that will let you turn a YouTube sermon into searchable text:
 
-**Task** Create a codeblock and load appropriate packages and settings for this lab.
+- **Stacher7** - a free interface for yt-dlp that lets you download videos from YouTube (and many other sites) without having to use the command line. Works on Mac and Windows.
+- **A local Whisper app** - software that runs OpenAI's Whisper speech-to-text model locally on your computer. "Locally" is important: your audio never leaves your machine, so you can transcribe sensitive or private recordings without sending them to a cloud service.
+    - On **Mac**, you'll use **MacWhisper**.
+    - On **Windows**, you'll use **Whisper Desktop** (a free, open-source equivalent).
 
+The Stacher7 steps are nearly identical on both platforms. The transcription steps differ a bit - watch for the Windows callouts in Tasks 2, 3, and 6.
 
+Once you have a transcript, you'll have something that can be searched, quoted, summarized, and analyzed - the raw material for stories about what's actually being said from pulpits in our coverage area.
 
-Let's get to scraping.
+## Load Libraries
 
-## Questions
-
-**Q1**. Scrape the listing of available Maryland physician disciplinary alerts at <https://www.mbp.state.md.us/disciplinary_2024.aspx> into a dataframe. You should have three columns, one of which is a date, so make sure the date column has a date datatype. What's the most common sanction, and how many times is it mentioned in the 2024 alerts?
-
-**A1** 
-
-```{r}
-
-```
-
-**Q2** Next, let's scrape the list of press releases from Maryland's Office of the Public Defender, <https://www.opd.state.md.us/press-releases>. This isn't a table, so you'll need to use `html_elements()` and your browser's inspector and do some clean up on the results. The result should be a dataframe with two columns that contain the date and title, and the date column should have a date datatype. The challenge here is figuring out how to isolate the releases.
-
-When you finish scraping into a dataframe, write code to find the press releases that have the word "police" in the title.
-
-**A2** 
+We won't need much R for this lab, but let's load the tidyverse so you can record notes and any quick checks in code chunks.
 
 ```{r}
-
+library(tidyverse)
 ```
 
-**Q3** Sen. Chris Van Hollen, D-Maryland, has posted press releases at <https://www.vanhollen.senate.gov/news/press-releases>. It would be great to have them in a dataframe that has the following columns: date, title and url.
+---
 
-To do this, you will need to scrape the page's html and save that to a variable, and *then* extract the dates, titles and urls into separate dataframes using html_elements(). There are two different elements that contain the press release URL; pick one of them, and you may need to invoke an HTML `class` value to do it. The function `html_text()` pulls out the contents of a tag, but for urls we want the HTML attribute. Rvest gives you a way to extract the URL from a link; google to find out what it is. Remember how we turn a list into a dataframe.
+## Task 1: Install Stacher7
 
-At the end, you'll have three dataframes that you want to combine into a single dataframe. When we want to combine the rows of identical dataframes, we used `bind_rows()`. If you were combining columns instead of rows, there's a similar function. Find out what it is and use it to put all of the dataframes together into a single one.
+Stacher7 is a graphical front-end for `yt-dlp`, a command-line tool that can download videos from YouTube and hundreds of other sites. Stacher7 handles installing and updating `yt-dlp` for you, which saves a lot of headaches.
 
-When you're done, rename the columns so they make sense, then make sure the date column is an actual date.
+**Steps:**
 
-Finally, tell me what questions you could ask of this data if you had all of his press releases. Be creative.
+1. Go to <https://stacher.io/> in your browser.
+2. Click the **Download** button and choose the build for your operating system.
+    - **Mac:** On Apple Silicon Macs (M1/M2/M3/M4) choose the Apple Silicon build; on older Intel Macs choose the Intel build. If you're not sure which Mac you have, click the Apple menu in the top-left corner of your screen and choose **About This Mac** - it will tell you the chip.
+    - **Windows:** Choose the Windows installer (`.exe`).
+3. Install the app.
+    - **Mac:** Open the downloaded `.dmg` and drag **Stacher7** into your **Applications** folder.
+    - **Windows:** Run the downloaded `.exe` and follow the installer prompts. If Windows shows a "Windows protected your PC" SmartScreen warning, click **More info** → **Run anyway**.
+4. Launch Stacher7.
+    - **Mac:** Open **Applications** and double-click **Stacher7**. macOS may warn you that the app was downloaded from the internet - click **Open** to confirm.
+    - **Windows:** Open Stacher7 from the Start menu.
+5. The first time Stacher7 launches, it will offer to download `yt-dlp` and `ffmpeg` for you. Let it do that. `yt-dlp` is the actual downloader; `ffmpeg` is what processes audio and video. You need both.
+6. When Stacher7 finishes setup, you should see a main window with a URL bar at the top.
 
-**A3**
+---
+
+## Task 2: Install your local Whisper app
+
+On **Mac**, you'll install MacWhisper. On **Windows**, you'll install Whisper Desktop (a free, open-source equivalent built by the developer "Const-me" and distributed through GitHub). Both apps run Whisper entirely on your own computer - no audio ever gets sent to a server.
+
+### Mac: Install MacWhisper
+
+MacWhisper wraps OpenAI's Whisper transcription model in a simple Mac app. It's free for basic use; the paid Pro version adds features we don't need for this lab.
+
+1. Go to <https://goodsnooze.gumroad.com/l/macwhisper>.
+2. Set the price to **$0** (or pay if you want to support the developer) and click **I want this!**
+3. Download the app, open the `.dmg`, and drag **MacWhisper** into your **Applications** folder.
+4. Open MacWhisper from **Applications**. Approve the security prompt if macOS asks.
+5. MacWhisper will open to a screen that asks you to pick a file or drop one in. Don't transcribe anything yet - first we need to download a model.
+
+### Windows: Install Whisper Desktop
+
+1. Go to the Whisper Desktop releases page on GitHub: <https://github.com/Const-me/Whisper/releases>.
+2. Under the latest release, download `WhisperDesktop.zip`.
+3. Right-click the downloaded `.zip` and choose **Extract All...**. Pick a permanent location for the extracted folder - your Documents folder is fine. Do **not** run it directly from inside the zip.
+4. Open the extracted folder and double-click **WhisperDesktop.exe**. If Windows shows a SmartScreen warning, click **More info** → **Run anyway**. (This happens because the app isn't signed with a paid certificate, not because it's unsafe.)
+5. The app will open to a "Load Whisper Model" screen asking you to choose a model file. Don't transcribe anything yet - first we need to download a model. We'll do that in Task 3.
+
+---
+
+## Task 3: Download a Whisper model
+
+Whisper comes in several model sizes. Bigger models are more accurate but slower and use more memory. You want a model that balances accuracy and speed.
+
+### Mac: Download the Turbo model in MacWhisper
+
+The **Turbo** model is the sweet spot on Mac - nearly as accurate as Large but several times faster.
+
+1. In MacWhisper, click the **model selector** (usually near the top of the window, or under **Settings** / **Preferences** depending on your version).
+2. Find **Turbo** in the list of models. It will show as not yet downloaded.
+3. Click the download icon next to Turbo. The model is roughly 1.5 GB, so this may take a few minutes depending on your connection.
+4. Once it finishes downloading, select Turbo as your active model.
+
+### Windows: Download the Medium model for Whisper Desktop
+
+Whisper Desktop doesn't bundle Turbo the same way MacWhisper does - instead, you'll download a model file separately. The recommended choice is **ggml-medium.bin** (about 1.5 GB). It's accurate enough for sermon transcription and runs at a reasonable speed on most laptops.
+
+1. Go to the Hugging Face page for Whisper GGML models: <https://huggingface.co/ggerganov/whisper.cpp/tree/main>.
+2. Find the file **`ggml-medium.bin`** in the list and click the download icon next to it.
+3. Save the file somewhere you'll remember (the same folder as WhisperDesktop.exe is a good choice).
+4. Back in Whisper Desktop, on the "Load Whisper Model" screen, click **Browse** next to the model path field and select the `ggml-medium.bin` file you just downloaded.
+5. Leave the other settings at their defaults and click **OK** / **Load Model**.
+
+---
+
+## Task 4: Find a Prince George's County church with a YouTube URL
+
+We're going to work from the Prince George's County churches Google Sheet. You used this same sheet in `pre_lab_11`, but **for this lab you must pick a different church than the one you used in the pre-lab**.
+
+**Steps:**
+
+1. Open the Prince George's County churches Google Sheet (the same one from `pre_lab_11`).
+2. Scroll or filter to find churches that have a YouTube URL listed.
+3. Pick one that wasn't used in the pre-lab. Try to find one where the church appears active on YouTube - recent uploads, reasonable video quality, and ideally full services or sermons rather than just short clips.
+4. Open the church's YouTube channel or page in your browser.
+
+**Q1.** Which church did you pick? Paste the church name, the city, and the YouTube URL (channel or page) below. In a sentence or two, describe what kind of content the church posts - full services? sermon-only clips? Bible studies? How often do they upload?
+
+**A1.**
+
+---
+
+## Task 5: Download a sermon or service with Stacher7
+
+Now you'll use Stacher7 to download one video from the church you picked.
+
+**Steps:**
+
+1. On the church's YouTube page, find a single sermon or service video. A full service is fine, but if the church posts very long videos (2+ hours), a shorter sermon clip (20-60 minutes) will be faster to transcribe.
+2. Copy the video's URL from your browser's address bar.
+3. Open Stacher7.
+4. Paste the URL into the URL bar at the top of Stacher7 and press **Enter** (or click **Get**).
+5. Stacher7 will fetch the video's metadata and show you format options.
+6. For transcription, you only need audio. Choose **Audio Only** and pick **m4a** or **mp3** as the format. This keeps the download small and is all MacWhisper needs. (If you'd also like the video itself, you can download it separately as MP4.)
+7. Set the download location to somewhere you'll remember - your Downloads folder is fine, or make a folder for this lab.
+8. Click **Download**. The progress bar will show you how it's going.
+
+**Q2.** What video did you download? Paste the video title, the URL, and the approximate length of the video. How large was the downloaded audio file?
+
+**A2.**
+
+**Note on ethics and permissions:** The sermons you're downloading are publicly posted by the churches themselves. That makes them fair game for analysis and reporting, but treat them the way you'd treat any public statement by a source: quote accurately, provide context, and give the speaker a chance to respond before publishing anything that characterizes what they said. Don't republish the audio itself.
+
+---
+
+## Task 6: Transcribe the audio
+
+Now, your Whisper app will turn the audio file into a text transcript.
+
+### Mac: Transcribe with MacWhisper
+
+1. Open MacWhisper.
+2. Confirm that **Turbo** is the selected model (top of the window).
+3. Drag the audio file you downloaded into the MacWhisper window, or click to browse and select it.
+4. MacWhisper should auto-detect the language as English. If it doesn't, set it manually.
+5. Click **Transcribe**. You'll see a progress indicator as the model processes the audio. A rough rule of thumb with Turbo on a modern Mac: transcription takes roughly a quarter to a half of the audio's length, so a 40-minute sermon might take 10-20 minutes. Older or lower-memory Macs will be slower.
+6. When it finishes, MacWhisper will display the transcript with timestamps.
+7. Export the transcript as a plain `.txt` file **without timestamps** (File > Export, or the export icon - look for an option like "Plain text" or "Text without timestamps"). Save it alongside your audio file. We want the plain-text version for the next task.
+
+### Windows: Transcribe with Whisper Desktop
+
+1. Open Whisper Desktop. It should already have the Medium model loaded from Task 3 - if not, load it now.
+2. On the transcribe screen, click **Browse** under "Transcribe audio file" and pick the audio file you downloaded with Stacher7.
+3. Confirm the language is set to English.
+4. Under **Output format**, choose **Text file (.txt)** and pick a save location for the transcript. If there's an option for timestamps, leave it **off** - we want plain text.
+5. Click **Transcribe**. A progress bar will show how it's going. Plan for transcription to take somewhere between 10% and 50% of the audio length depending on your hardware - a 40-minute sermon on a mid-range Windows laptop typically finishes in 10-20 minutes, faster if your machine has a recent NVIDIA GPU.
+6. When it finishes, open the saved `.txt` file in Notepad or your editor of choice to confirm it worked.
+
+**Q3.** Open the `.txt` file and skim the first few minutes of the transcript. How accurate does it look? Note one or two things Whisper got clearly right and anything it seems to have struggled with (unusual names, scripture references, music, people talking over each other, etc.).
+
+**A3.**
+
+**Q4.** Read through more of the transcript. In 2-3 sentences, what is the sermon or service about? Is there anything in it - a theme, a political reference, a local event, a specific passage of scripture, a fundraising appeal - that caught your attention.
+
+**A4.**
+
+---
+
+## Task 7: Bring the transcript into R with tidytext
+
+A `.txt` file you can skim is useful. A tidy dataframe of words you can count, filter, and group is more useful - and it lets you use the dplyr skills you already have on a brand-new kind of data.
+
+For this task we'll use the **tidytext** package, which turns any block of text into one-row-per-word so you can treat language the same way you'd treat any other tidy dataset.
+
+### Install tidytext (one time only)
+
+If you haven't used tidytext before, install it. You only need to do this once on your computer - after that you just need to load it.
 
 ```{r}
+# Uncomment and run once, then re-comment:
+# install.packages("tidytext")
 
+library(tidytext)
 ```
+
+### Step 1: Move your transcript into your project folder
+
+Copy the `.txt` transcript you exported in Task 6 into the same folder as this `.Rmd` file (or your project's `data/` folder, if you have one). This makes it easy to reference by filename.
+
+### Step 2: Read the transcript into R
+
+Change `"your_transcript.txt"` in the code below to the actual filename of your transcript.
+
+```{r}
+transcript <- read_lines("your_transcript.txt")
+
+# Peek at what we've got
+length(transcript)  # how many lines?
+head(transcript, 5) # the first few lines
+```
+
+`read_lines()` gives you a character vector with one element per line in the file. That's fine, but to use tidyverse verbs on it we need it in a dataframe.
+
+### Step 3: Turn it into a dataframe, then into tidy words
+
+```{r}
+tidy_transcript <- tibble(line = 1:length(transcript), text = transcript) |>
+  unnest_tokens(word, text)
+
+head(tidy_transcript, 20)
+```
+
+Two things just happened:
+
+1. We wrapped the character vector in a tibble with a `line` column (useful if you ever want to trace a word back to where it appeared).
+2. `unnest_tokens(word, text)` split every line into individual words, lowercased them, stripped punctuation, and gave us one row per word.
+
+### Step 4: Remove stop words
+
+"The", "and", "of", "to", "a" - these will be the top words in any English text and aren't going to tell you anything specific about the sermon. tidytext ships with a `stop_words` dataset that we can anti-join to filter them out.
+
+```{r}
+tidy_transcript <- tidy_transcript |>
+  anti_join(stop_words, join_by(word))
+
+head(tidy_transcript, 20)
+```
+
+### Step 5: Count the most common words
+
+```{r}
+tidy_transcript |>
+  count(word, sort = TRUE) |>
+  head(20)
+```
+
+**Q5.** What are the top 20 most common words in your transcript (after removing stop words)? Do they line up with what you said the sermon was about in Q4, or do they point to something different? Name one word in the top 20 that surprises you or that you'd want to follow up on, and explain why in a sentence or two.
+
+**A5.**
+
+### Step 6 (optional): Search for a specific word or phrase
+
+If something in Q5 caught your eye, you can go back to the original line-level transcript and find where it appeared. This is how you'd turn a word count into an actual quote for a story.
+
+```{r}
+# Replace "faith" with a word you care about
+tibble(line = 1:length(transcript), text = transcript) |>
+  filter(str_detect(text, regex("faith", ignore_case = TRUE)))
+```
+
+You don't have to answer a question about this - it's just a tool you now have.
+
+---
+
+## Wrap-up
+
+You now have a workflow that, with a few clicks and a few lines of R, can turn any publicly posted sermon into a tidy dataset of words on your own machine. Hold onto the transcript file and this notebook - we'll build on both in future labs when we start analyzing sermon language at scale.
+
+Before you submit, confirm you have:
+
+- Stacher7 installed and working
+- MacWhisper (Mac) or Whisper Desktop (Windows) installed with a model loaded
+- A downloaded audio file from a PG County church (not the one from pre_lab_11)
+- A saved plain-text `.txt` transcript in your project folder
+- A knitted HTML showing your word counts from Task 7
+- Answers to Q1 through Q5
+
+Knit this file to HTML and submit the `.Rmd` and `.html` files along with your transcript `.txt`.
