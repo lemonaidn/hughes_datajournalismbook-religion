@@ -1,49 +1,259 @@
 ---
-title: "lab_12"
+title: "Geocoding and Mapping Prince George's County Churches"
 author: "Derek Willis"
-date: "2025-01-16"
-output: html_document
+date: "`r Sys.Date()`"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
-## You will need
+## Introduction
 
--   tidytext and our usual libraries
+In this notebook we'll take a CSV of churches in Prince George's County, Maryland that students gathered, use a free geocoding service to convert their street addresses into latitude/longitude coordinates, and then plot them on a map with `ggplot2`.
 
-## Load libraries and establish settings
+We'll use **`tidygeocoder`** with OpenStreetMap's **Nominatim** service, which is free and does not require an API key. Nominatim asks users to send no more than 1 request per second — `tidygeocoder` handles that rate-limiting automatically.
 
-**Task** Create a codeblock and load appropriate packages and settings for this lab.
+## Load libraries
+
+If you haven't installed these packages, uncomment the install lines and run them once.
 
 ```{r}
+# install.packages(c("tidyverse", "tidygeocoder", "sf", "tigris", "ggrepel"))
+
 library(tidyverse)
-library(tidytext)
-library(janitor)
-library(lubridate)
-library(rvest)
+library(tidygeocoder)   # free geocoding via Nominatim/OSM
+library(sf)             # simple features for the basemap
+library(tigris)         # county boundaries from the Census Bureau
+library(ggrepel)        # non-overlapping labels (optional)
+
+# Cache tigris downloads so we don't re-fetch the shapefile every run
+options(tigris_use_cache = TRUE)
+options(scipen = 999)
 ```
 
-## Questions
-
-**Q1.** You've been assigned to report a story about the leading reasons that Maryland attorneys get sanctioned by the state for misconduct. The state [publishes lists of sanctions](https://www.courts.state.md.us/attygrievance/sanctions) that contain a short text description about the situation. Load the CSV file in the data folder containing records from fiscal year 2011 onwards. Make a list of unique words from the text column, then following the example in the pre_lab, remove common "stop words" from that list and create a list of the top 10 words containing the percentage of occurrences each word represents. What's the leading word in that answer and, broadly, what do you think the top 10 words describe?
-
-**A1.**
+## Load the data
 
 ```{r}
+churches <- read_csv("pg_churches.csv")
+
+glimpse(churches)
 ```
 
-**Q2.** Let's move beyond single words to phrases. Make a list of the top 10 three-word phrases, called trigrams, based on the example from the pre_lab (you'll need to modify the example code to do this). What's the top trigram and how often does it appear? What does that phrase mean in legal terms?
+The `address` column contains addresses students collected from church websites. They are not perfectly formatted — some have embedded newlines, some include "United States", some are missing the city or ZIP. We'll need to clean them before sending them to the geocoder.
 
-**A2.**
+## Clean the addresses
+
+A geocoder works best with addresses on a single line and without extra noise. We'll do a few things:
+
+1. Replace newlines and tabs with spaces.
+2. Collapse repeated whitespace.
+3. Strip stray punctuation like trailing commas.
+4. Add ", USA" to the end so Nominatim doesn't confuse Maryland street names with places elsewhere in the world.
 
 ```{r}
+churches_clean <- churches |>
+  mutate(
+    address_clean = address |>
+      str_replace_all("[\r\n\t]+", " ") |>   # newlines/tabs -> space
+      str_squish() |>                         # collapse repeated spaces
+      str_remove_all(",\\s*$") |>             # drop trailing comma
+      str_remove_all("\\s*PO Box\\s*\\d+\\s*") |>   # drop PO Box fragments
+      str_squish(),
+    # Add country if it isn't already there
+    address_clean = if_else(
+      str_detect(address_clean, regex("united states|usa", ignore_case = TRUE)),
+      address_clean,
+      paste0(address_clean, ", USA")
+    )
+  )
+
+# Spot check
+churches_clean |>
+  select(name, address, address_clean) |>
+  slice_head(n = 5)
 ```
 
-**Q3.** Let's drop back down to more traditional text analysis - take the top trigram from Q2 and write code to see how many times it occurs in the text column in each fiscal year. What do you think the answer produced by your code suggests? What else could you do to try and clarify the most important reasons attorneys get sanctioned?
+## Geocode
 
-**A3.**
+`tidygeocoder::geocode()` takes a data frame, a column with addresses, and a `method`. We'll use `"osm"` (Nominatim). With ~250 rows and the required 1-second-per-request rate, this will take roughly **4–5 minutes** the first time you run it.
+
+Because geocoding is slow, we cache the result to a local CSV. On subsequent runs the chunk just reads the cache.
+
+```{r geocode, cache=TRUE}
+cache_file <- "pg_churches_geocoded.csv"
+
+if (file.exists(cache_file)) {
+  churches_geo <- read_csv(cache_file)
+} else {
+  churches_geo <- churches_clean |>
+    geocode(
+      address = address_clean,
+      method  = "osm",
+      lat     = "latitude",
+      long    = "longitude",
+      # tidygeocoder will sleep between requests as required by Nominatim
+      quiet   = FALSE
+    )
+  write_csv(churches_geo, cache_file)
+}
+```
+
+## Check geocoding quality
+
+Not every address will return a hit. Let's see how many we got and look at any failures.
 
 ```{r}
+# How many succeeded?
+churches_geo |>
+  summarise(
+    total      = n(),
+    geocoded   = sum(!is.na(latitude)),
+    failed     = sum(is.na(latitude)),
+    pct_geocoded = round(100 * geocoded / total, 1)
+  )
+
+# Which ones failed?
+churches_geo |>
+  filter(is.na(latitude)) |>
+  select(name, address)
 ```
+
+We should also sanity-check that the coordinates we *did* get actually fall in or near Prince George's County. PG County sits roughly between latitude 38.65–39.10 and longitude -77.10 to -76.65. Anything way outside that bounding box is almost certainly a mis-geocode (a Nominatim hit on a similarly-named street in another state).
+
+```{r}
+churches_geo <- churches_geo |>
+  mutate(
+    in_pg_bbox = latitude  >= 38.6 & latitude  <= 39.1 &
+                 longitude >= -77.1 & longitude <= -76.6
+  )
+
+churches_geo |>
+  filter(!is.na(latitude), !in_pg_bbox) |>
+  select(name, address, latitude, longitude)
+```
+
+For the map we'll keep only the rows that geocoded successfully and fall inside the bounding box. In a real reporting workflow you'd go back and manually fix the addresses that failed or landed in the wrong place — for the lab we'll flag them and move on.
+
+```{r}
+churches_map <- churches_geo |>
+  filter(!is.na(latitude), in_pg_bbox)
+
+nrow(churches_map)
+```
+
+## Get a basemap of Prince George's County
+
+We'll pull the county boundary from the U.S. Census Bureau's TIGER/Line shapefiles via the `tigris` package. Maryland's state FIPS code is `24` and Prince George's County is `033`.
+
+```{r}
+md_counties <- counties(state = "MD", cb = TRUE, year = 2022, progress_bar = FALSE)
+
+pg_county <- md_counties |>
+  filter(GEOID == "24033")
+```
+
+## Plot the churches
+
+A clean first map: the county outline, with one point per church.
+
+```{r fig.width=9, fig.height=9}
+ggplot() +
+  geom_sf(data = pg_county, fill = "grey95", color = "grey40") +
+  geom_point(
+    data = churches_map,
+    aes(x = longitude, y = latitude),
+    color = "#cc3333",
+    alpha = 0.7,
+    size  = 2
+  ) +
+  labs(
+    title    = "Churches in Prince George's County, Maryland",
+    subtitle = paste0(nrow(churches_map), " churches geocoded via OpenStreetMap"),
+    caption  = "Source: Student-collected church data; basemap from U.S. Census TIGER/Line",
+    x = NULL, y = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text  = element_blank()
+  )
+```
+
+## Color by denomination
+
+The dataset has a `denomination` column. There are a lot of categories, so let's keep the top denominations and lump the rest into "Other" so the legend stays readable.
+
+```{r fig.width=10, fig.height=9}
+churches_map <- churches_map |>
+  mutate(
+    denomination = str_squish(denomination),
+    denom_top    = fct_lump_n(denomination, n = 8, other_level = "Other")
+  )
+
+ggplot() +
+  geom_sf(data = pg_county, fill = "grey95", color = "grey40") +
+  geom_point(
+    data = churches_map,
+    aes(x = longitude, y = latitude, color = denom_top),
+    alpha = 0.8,
+    size  = 2.2
+  ) +
+  scale_color_brewer(palette = "Set1", name = "Denomination") +
+  labs(
+    title    = "Churches in Prince George's County by Denomination",
+    subtitle = paste0(nrow(churches_map), " churches geocoded"),
+    caption  = "Source: Student-collected church data; basemap from U.S. Census TIGER/Line",
+    x = NULL, y = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text  = element_blank(),
+    legend.position = "right"
+  )
+```
+
+## Where are the clusters?
+
+A simple density plot can highlight which parts of the county have the most churches in our dataset.
+
+```{r fig.width=9, fig.height=9}
+ggplot() +
+  geom_sf(data = pg_county, fill = "grey95", color = "grey40") +
+  stat_density_2d(
+    data = churches_map,
+    aes(x = longitude, y = latitude, fill = after_stat(level)),
+    geom  = "polygon",
+    alpha = 0.4
+  ) +
+  geom_point(data = churches_map,
+             aes(x = longitude, y = latitude),
+             size = 0.8, color = "grey20") +
+  scale_fill_viridis_c(name = "Density") +
+  labs(
+    title = "Where churches cluster in Prince George's County",
+    x = NULL, y = NULL
+  ) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(), axis.text = element_blank())
+```
+
+## Wrap-up: questions to take to reporting
+
+A few things worth following up on once the data is mapped:
+
+- Which addresses failed to geocode, and why? Were they entered incorrectly or do those churches not have a clear physical address?
+- Are denominations spatially clustered? Catholic parishes, for example, are typically organized geographically by diocese — does that show up here?
+- Which neighborhoods or municipalities have the highest density of churches per capita? (You'd join to ACS population data via `tidycensus` to answer that.)
+- Are there ZIP codes or census tracts in PG County with no churches in our dataset at all? That could indicate either a real gap or an undercount in the student collection effort.
+
+ANSWER HERE
+
+## A note on the geocoder
+
+OpenStreetMap's Nominatim is free and good enough for reporting work at this scale, but it has limits:
+
+- **Rate limit:** 1 request/second. Don't try to push it.
+- **Coverage:** OSM data quality varies. U.S. street addresses are generally well-covered, but rural addresses or very new construction may not be.
+- **Terms of use:** For larger jobs (thousands of addresses, repeated production runs), set up a self-hosted Nominatim instance or use a paid service like Google or Mapbox. The `tidygeocoder` package supports many of those backends with the same `geocode()` interface — you just change the `method` argument.
